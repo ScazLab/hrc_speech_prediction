@@ -1,0 +1,41 @@
+<package format="2">
+  <name>hrc_speech_prediction</name>
+  <version>0.0.1</version>
+  <description>The hrc_speech_prediction package</description>
+
+  <!-- One maintainer tag required, multiple allowed, one person per tag -->
+  <!-- Example:  -->
+  <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
+  <maintainer email="scazlab@yale.edu">scazlab</maintainer>
+
+  <!-- One license tag required, multiple allowed, one license per tag -->
+  <license>LGPLv2.1</license>
+
+  <!-- Url tags are optional, but multiple are allowed, one per tag -->
+  <url type="website">https://github.com/scazlab/human_robot_collaboration</url>
+
+  <!-- Author tags are optional, multiple are allowed, one per tag -->
+  <author email="jake.brawer@yale.edu">Jake Brawer</author>
+
+  <!-- The *_depend tags are used to specify dependencies -->
+  <!-- Dependencies can be catkin packages or system dependencies -->
+  <!-- Examples: -->
+  <!-- Use build_depend for packages you need at compile time: -->
+  <!--   <build_depend>message_generation</build_depend> -->
+  <!-- Use buildtool_depend for build tool packages: -->
+  <!--   <buildtool_depend>catkin</buildtool_depend> -->
+  <!-- Use run_depend for packages you need at runtime: -->
+  <!--   <run_depend>message_runtime</run_depend> -->
+  <!-- Use test_depend for packages you need only for testing: -->
+  <!--   <test_depend>gtest</test_depend> -->
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>roscpp</build_depend>
+
+  <depend>human_robot_collaboration_msgs</depend>
+
+  <!-- The export tag contains other, unspecified, tags -->
+  <export>
+    <!-- Other tools can request additional information be placed here -->
+
+  </export>
+</package>
