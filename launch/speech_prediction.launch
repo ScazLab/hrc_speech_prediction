@@ -1,6 +1,8 @@
 <launch>
     <!-- ARUCO -->
-    <include file="$(find human_robot_collaboration)/launch/baxter_aruco.launch" />
+    <include file="$(find human_robot_collaboration)/launch/baxter_aruco.launch">
+        <arg name="arm" value= "left" />
+    </include>
     <include file="$(find human_robot_collaboration)/launch/baxter_aruco.launch">
         <arg name="arm" value="right" />
     </include>
@@ -22,6 +24,7 @@
         "foot"          : 10
         "bracket_front" : 11
         "bracket_back"  : 12
+        "bracket_top"   : 13
     </rosparam>
 
     <!-- CONTROL -->
@@ -47,7 +50,7 @@
     <arg name="record" default="true"/>
     <!--  pass this as a commandline arg to launch file e.g
     roslaunch human_robot_collaboration speech_predicition.launch participantID=42069-->
-    <arg name="participantID"/>
+    <arg name="participantID" default="test"/>
     <arg name="bag_path" default="/home/$(env USER)/Desktop/speech_prediction_bags/$(arg participantID)/"/>
 
     <arg name="bag_topics"
