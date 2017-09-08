@@ -31,8 +31,12 @@
     <!-- If the system should use the robot or not (useful for debugging) -->
     <arg name="useRobot" default="true"/>
     <param name="action_provider/use_robot" value="$(arg useRobot)"/>
+    <rosparam param="/print_level">2</rosparam>
 
-    <node pkg="human_robot_collaboration" type="sp_pred_action_provider" name="sp_pred_action_provider" output="screen"/>
+    <node pkg="human_robot_collaboration" type="sp_pred_action_provider" name="sp_pred_action_provider" output="screen">
+        <remap from="/markers/left"  to="/baxter_aruco_left/markers"/>
+        <remap from="/markers/right" to="/baxter_aruco_right/markers"/>
+    </node>
 
     <!-- VISUALIZATION & MISC -->
     <!-- Parameter for speech pop up duration -->
