@@ -8,7 +8,7 @@
     </include>
 
     <!-- ROSBRIDGE -->
-    <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
+    <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" />
 
     <!-- Objects database for the left arm -->
     <rosparam param = "action_provider/objects_left">
@@ -21,10 +21,12 @@
 
     <!-- Objects database for the right arm -->
     <rosparam param = "action_provider/objects_right">
-        "foot"          : 10
-        "bracket_front" : 11
-        "bracket_back"  : 12
-        "bracket_top"   : 13
+        "foot_1"  : 10
+        "foot_2"  : 11
+        "foot_3"  : 12
+        "foot_4"  : 13
+        "front_1" : 14
+        "front_2" : 15
     </rosparam>
 
     <!-- CONTROL -->
@@ -48,7 +50,7 @@
     <!-- <include file="$(find svox_tts)/launch/svox_tts.launch" /> -->
 
     <!-- Speech to Text -->
-    <include file="$(find ros_speech2text)/launch/ros_speech2text.launch"/>
+    <include file="$(find ros_speech2text)/launch/ros_speech2text.launch" />
 
     <!--ROSBAG -->
     <arg name="record" default="true"/>
