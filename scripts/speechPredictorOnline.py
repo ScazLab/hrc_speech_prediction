@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python 
 from trainSpeechPredictor import *
 from human_robot_collaboration_msgs.msg import *
 from ros_speech2text.msg import *
@@ -17,8 +17,8 @@ def createStateAndSpeechVec():
     vec = []
     # Take 10 readings to mitigate noise illusions
     while counter < 10:
-        aruco_msg = rospy.wait_for_message(aruco_topic, MarkerArray).markers
-        hsv_msg = rospy.wait_for_message(hsv_topic, ObjectsArray).objects
+        left_aruco_msg = rospy.wait_for_message(left_aruco_topic, MarkerArray).markers
+        right_aruco_msg = rospy.wait_for_message(left_aruco_topic, MarkerArray).markers
         for o in aruco_msg:
             left_dict[o.id] += 1
         for o in hsv_msg:

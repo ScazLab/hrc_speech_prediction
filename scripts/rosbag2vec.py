@@ -16,25 +16,39 @@ logging.debug('This is a log message.')
 bag_dir_path = sys.argv[1]
 
 # Ros topics we have recorded
-aruco_topic = '/aruco_marker_publisher/markers'
-hsv_topic = '/hsv_detector/objects'
+left_aruco_topic = '/baxter_aruco_left/markers'
+right_aruco_topic = '/baxter_aruco_right/markers'
 left_state_topic = '/action_provider/left/state'
 right_state_topic = '/action_provider/right/state'
 speech_topic = '/ros_speech2text/user_output'
 web_topic = '/web_interface/log'
 
-right_obj_dict = c.OrderedDict([(1, 0), (2, 0), (3,0)])
+right_obj_dict = c.OrderedDict([(10, 0), (11, 0), (12,0),
+                                (13,0), (14,0), (15,0), 
+                                (16,0), (17,0), (18,0),
+                                (19,0), (20, 0), (21,0)])
 
-left_obj_dict = c.OrderedDict([(150, 0), (151, 0), (152, 0), (153, 0), (200, 0)])
+left_obj_dict = c.OrderedDict([(150, 0), (151, 0), (152, 0),
+                                (153, 0), (200, 0), (201, 0)])
 
-id_dict = {"table_top"     : 200,
+id_dict = {"seat"          : 200,
+           "back"          : 201, 
            "leg_1"         : 150,
            "leg_2"         : 151,
            "leg_3"         : 152,
            "leg_4"         : 153,
-           "brackets_box"  : 0,
-           "screwdriver"   : 1,
-           "screws_box"    : 2
+           "foot_1"        : 10, 
+           "foot_2"        : 11,  
+           "foot_3"        : 12,   
+           "foot_4"        : 13,   
+           "front_1"       : 14,  
+           "front_2"       : 15,  
+           "top_1"         : 16,  
+           "top_2"         : 17,  
+           "back_1"        : 18,  
+           "back_2"        : 19,  
+           "screwdriver_1" : 20,  
+           "screwdriver_2" : 21
 }
 
 
@@ -93,19 +107,15 @@ from above function"""
     total_msgs = 0.
 
     if arm_topic == right_state_topic:
-        cam_topic = hsv_topic
+        cam_topic = right_aruco_topic
     else:
-        cam_topic = aruco_topic
+        cam_topic = left_aruco_topic
 
     for topic, msg, t in bag.read_messages(topics=[cam_topic]):
         if t < t_frame[1] and t > t_frame[0]:
             total_msgs += 1
-            if arm_topic == right_state_topic:
-                for o in filter(lambda x: x.id != 0, msg.objects):
-                    obj_dict[o.id] += 1
-            else:
-                for o in filter(lambda x: x.id != 0, msg.markers):
-                    obj_dict[o.id] += 1
+            for o in filter(lambda x: x.id != 0, msg.markers):
+                obj_dict[o.id] += 1
         elif t < t_frame[0]:
             continue
         elif t > t_frame[1]:
@@ -130,7 +140,7 @@ from above function"""
 
     # This bit of repeated code accounts for the case when the calculated duration
     # of the final state is greater than the actual last timestamp of
-    # aruco/hsv msggs
+    # aruco/hsv msgs
     env_vec = []
 
     for k in sorted(obj_dict.keys()):
