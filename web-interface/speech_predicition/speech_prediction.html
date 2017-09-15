@@ -86,16 +86,24 @@
                 <div class="parent" data-toggle="buttons">
                     <button type="button" class="btn btn-danger btn-lg">error</button>
                     <button type="button" class="btn btn-success btn-lg">home</button>
-                    <label class="btn btn-primary btn-lg" id="d_get_pass">
-                        <input type="radio" name="options" id="q_get_pass" autocomplete="off" checked>get pass
+                    <label class="btn btn-primary btn-lg" id="d_legs">
+                        <input type="radio" name="options" id="q_legs" autocomplete="off" checked>LEGS...
                     </label>
-                    <label class="btn btn-primary btn-lg " id="d_cleanup">
-                        <input type="radio" name="options" id="q_cleanup" autocomplete="off" checked>cleanup
+                    <label class="btn btn-primary btn-lg" id="d_feet">
+                        <input type="radio" name="options" id="q_feet" autocomplete="off" checked>FEET...
                     </label>
-                </div>
-                <div id="container-default">
                     <button type="button" class="btn btn-info btn-lg">hold top</button>
                     <button type="button" class="btn btn-info btn-lg">hold leg</button>
+                </div>
+                <div id="container-default">
+                  <button type="button" class="btn btn-info btn-lg">seat</button>
+                  <button type="button" class="btn btn-info btn-lg">chair_back</button>
+                  <button type="button" class="btn btn-info btn-lg">back_1</button>
+                  <button type="button" class="btn btn-info btn-lg">back_2</button>
+                  <button type="button" class="btn btn-info btn-lg">top_1</button>
+                  <button type="button" class="btn btn-info btn-lg">top_2</button>
+                  <button type="button" class="btn btn-info btn-lg">screwdriver_1</button>
+                  <button type="button" class="btn btn-info btn-lg">screwdriver_2</button>
                 </div>
                 <div id="container-cleanup" style="display: none;">
                   <button type="button" class="btn btn-info btn-lg">c_screwdriver</button>
@@ -104,20 +112,24 @@
                   <button type="button" class="btn btn-danger btn-lg">BACK</button>
                 </div>
                 <div id="container-get_pass" style="display: none;">
-                  <button type="button" class="btn btn-info btn-lg">get_table_top</button>
-                  <button type="button" class="btn btn-info btn-lg">get_leg_1</button>
-                  <button type="button" class="btn btn-info btn-lg">get_leg_2</button>
-                  <button type="button" class="btn btn-info btn-lg">get_leg_3</button>
-                  <button type="button" class="btn btn-info btn-lg">get_leg_4</button>
-                  <button type="button" class="btn btn-info btn-lg">get_screwdriver</button>
-                  <button type="button" class="btn btn-info btn-lg">get_screws_box</button>
-                  <button type="button" class="btn btn-info btn-lg">get_brackets_box</button>
                   <button type="button" class="btn btn-danger btn-lg">BACK</button>
                 </div>
+                <div id="container-legs" style="display: none;">
+                    <button type="button" class="btn btn-info btn-lg">leg_1</button>
+                    <button type="button" class="btn btn-info btn-lg">leg_2</button>
+                    <button type="button" class="btn btn-info btn-lg">leg_3</button>
+                    <button type="button" class="btn btn-info btn-lg">leg_4</button>
+                  <button type="button" class="btn btn-danger btn-lg">RETURN</button>
+                </div>
+                <div id="container-feet" style="display: none;">
+                    <button type="button" class="btn btn-info btn-lg">foot_1</button>
+                    <button type="button" class="btn btn-info btn-lg">foot_2</button>
+                    <button type="button" class="btn btn-info btn-lg">foot_3</button>
+                    <button type="button" class="btn btn-info btn-lg">foot_4</button>
+                  <button type="button" class="btn btn-danger btn-lg">RETURN</button>
+                </div>
             </div>
-
         </div>
-    </div>
     <div id="status" class="container">
         <div class="row">
             <div class="col-md-12 text-xs-center">
@@ -170,26 +182,26 @@
 <script src="speech_prediction.js"></script>
 
 <script type="text/javascript">
-  $('#d_get_pass').on("click",function(){
+  $('#d_feet').on("click",function(){
        document.getElementById('container-default').style.display = 'none';
-       document.getElementById('container-cleanup').style.display = 'none';
-       document.getElementById('container-get_pass').style.display = 'block';
+       document.getElementById('container-legs').style.display = 'none';
+       document.getElementById('container-feet').style.display = 'block';
     });
-    $('#d_cleanup').on("click",function(){
+    $('#d_legs').on("click",function(){
        document.getElementById('container-default').style.display = 'none';
-       document.getElementById('container-get_pass').style.display = 'none';
-       document.getElementById('container-cleanup').style.display = 'block';
+       document.getElementById('container-legs').style.display = 'block';
+       document.getElementById('container-feet').style.display = 'none';
     });
- d3.select("#container-get_pass").selectAll("button").on("click",function(){
+ d3.select("#container-legs").selectAll("button").on("click",function(){
        document.getElementById('container-default').style.display = 'block';
-       document.getElementById('container-get_pass').style.display = 'none';
-       document.getElementById('container-cleanup').style.display = 'none';
+       document.getElementById('container-legs').style.display = 'none';
+       document.getElementById('container-feet').style.display = 'none';
  });
 
- d3.select("#container-cleanup").selectAll("button").on("click",function(){
+ d3.select("#container-feet").selectAll("button").on("click",function(){
        document.getElementById('container-default').style.display = 'block';
-       document.getElementById('container-get_pass').style.display = 'none';
-       document.getElementById('container-cleanup').style.display = 'none';
+       document.getElementById('container-legs').style.display = 'none';
+       document.getElementById('container-feet').style.display = 'none';
  });
  d3.select("#experiment-toggle").selectAll("button").on("click",function(){
     if(document.getElementById('start').style.display == 'inline-block')

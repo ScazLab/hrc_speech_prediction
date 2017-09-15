@@ -73,14 +73,14 @@ var errorPressedR = new ROSLIB.Topic({
 
 var leftAruco  = new ROSLIB.Topic({
     ros : ros,
-    name: '/aruco_marker_publisher/markers',
+    name: '/baxter_aruco_left/markers',
     messageType : 'aruco_msgs/MarkerArray'
 });
 
 var rightAruco  = new ROSLIB.Topic({
     ros : ros,
-    name: '/hsv_detector/objects',
-    messageType : 'human_robot_collaboration_msgs/ObjectsArray'
+    name: '/baxter_aruco_right/markers',
+    messageType : 'aruco_msgs/MarkerArray'
 });
 
 var rightArmInfo = new ROSLIB.Topic({
@@ -156,55 +156,6 @@ function callback(e) {
           errorPressedL.publish(message);
           errorPressedR.publish(message);
         }
-        else if(obj.includes("get_") || obj.includes("c_"))
-        {
-            req = new ROSLIB.ServiceRequest();
-            res = new ROSLIB.ServiceResponse();
-
-            req.objects = [];
-
-            // remove prefix, so that we can use the name for other things
-            var o = obj.replace(/(get|c)_/g,'');
-
-            var params = new ROSLIB.Param({
-                ros: ros,
-                name: ""
-            });
-
-            // Figure out param name based on the name of buttons
-            if(obj.includes("table") || obj.includes("leg")){
-                params.name = left_param_path + o;
-            }
-            else{
-                params.name = right_param_path + o;
-            }
-
-
-            req.action = obj.includes("get_")? "get_pass":"cleanup";
-
-            console.log("PARAM: " + params.name);
-
-            // get id associated with each obj and then pick it up
-            params.get(function(val){
-
-                req.objects[0] = Number(val);
-                console.log("service: " + params.name + " val: " + val);
-
-                console.log('Requested: ', req.action, req.objects);
-                // ids < 100 usually are handled by right arm
-                if(Number(val) < 100){
-                    rightArmService.callService(req,function(res) {
-                        console.log('Got Response: ' + res.success);
-                    });
-                }
-                else{
-                    leftArmService.callService(req,function(res) {
-                        console.log('Got Response: ' + res.success);
-                    });
-                }
-            });
-
-        }
         else if (obj.includes("hold"))
         {
             req = new ROSLIB.ServiceRequest();
@@ -261,6 +212,52 @@ function callback(e) {
 
         else
            {
+            req = new ROSLIB.ServiceRequest();
+            res = new ROSLIB.ServiceResponse();
+
+            req.objects = [];
+
+            // remove prefix, so that we can use the name for other things
+            var o = obj.replace(/(get|c)_/g,'');
+
+            var params = new ROSLIB.Param({
+                ros: ros,
+                name: ""
+            });
+
+            // Figure out param name based on the name of buttons
+            if(obj.includes("table") || obj.includes("leg")
+               || obj.includes("seat") || obj.includes("chair_back")){
+                params.name = left_param_path + o;
+            }
+            else{
+                params.name = right_param_path + o;
+            }
+
+
+            req.action = "get_pass";
+
+            console.log("PARAM: " + params.name);
+
+            // get id associated with each obj and then pick it up
+            params.get(function(val){
+
+                req.objects[0] = Number(val);
+                console.log("service: " + params.name + " val: " + val);
+
+                console.log('Requested: ', req.action, req.objects);
+                // ids < 100 usually are handled by right arm
+                if(Number(val) < 100){
+                    rightArmService.callService(req,function(res) {
+                        console.log('Got Response: ' + res.success);
+                    });
+                }
+                else{
+                    leftArmService.callService(req,function(res) {
+                        console.log('Got Response: ' + res.success);
+                    });
+                }
+            });
           if (obj == 'finish') obj = 'stop'; // To comply with the py code
 
           var message = new ROSLIB.Message({

@@ -8,16 +8,16 @@
     </include>
 
     <!-- ROSBRIDGE -->
-    <!-- < include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" /> -->
+    <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
 
     <!-- Objects database for the left arm -->
     <rosparam param = "action_provider/objects_left">
-        "seat"     : 200
-        "back"     : 201
-        "leg_1"    : 150
-        "leg_2"    : 151
-        "leg_3"    : 152
-        "leg_4"    : 153
+        "seat"       : 200
+        "chair_back" : 201
+        "leg_1"      : 150
+        "leg_2"      : 151
+        "leg_3"      : 152
+        "leg_4"      : 153
     </rosparam>
 
     <!-- Objects database for the right arm -->
