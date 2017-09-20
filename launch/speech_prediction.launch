@@ -26,6 +26,8 @@
         "foot_2"        : 11
         "foot_3"        : 12
         "foot_4"        : 13
+        "foot_5"        : 22
+        "foot_6"        : 23
         "front_1"       : 14
         "front_2"       : 15
         "top_1"         : 16
@@ -33,14 +35,18 @@
         "back_1"        : 18
         "back_2"        : 19
         "screwdriver_1" : 20
-        "screwdriver_2" : 21
     </rosparam>
 
     <!-- CONTROL -->
     <!-- If the system should use the robot or not (useful for debugging) -->
-    <arg name="useRobot" default="true"/>
-    <param name="action_provider/use_robot" value="$(arg useRobot)"/>
-    <rosparam param="/print_level">2</rosparam>
+    <arg name="use_robot" default="true"/>
+    <param name="action_provider/use_robot" value="$(arg use_robot)"/>
+    <!-- If the system should internally recover from error -->
+    <arg name="internal_recovery" default="true"/>
+    <param name="action_provider/internal_recovery" value="$(arg internal_recovery)"/>
+    <!-- print level (shared throughout the control code) -->
+    <arg name="print_level" default="0"/>
+    <rosparam param="/print_level">$(arg print_level)</rosparam>
 
     <node pkg="human_robot_collaboration" type="sp_pred_action_provider" name="sp_pred_action_provider" output="screen">
         <remap from="/markers/left"  to="/baxter_aruco_left/markers"/>
