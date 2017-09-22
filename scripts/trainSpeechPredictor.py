@@ -30,10 +30,12 @@ web_topic = '/web_interface/log'
 right_obj_dict = c.OrderedDict([(10, 0), (11, 0), (12,0),
                                 (13,0), (14,0), (15,0),
                                 (16,0), (17,0), (18,0),
-                                (19,0), (20, 0), (21,0)])
+                                (19,0), (20, 0), (21,0),
+                                (22,0), (23,0)])
 
 left_obj_dict = c.OrderedDict([(150, 0), (151, 0), (152, 0),
-                                (153, 0), (200, 0), (201, 0)])
+                                (153, 0), (154, 0), (155,0),
+                               (156, 0), (200, 0), (201, 0)])
 
 id_dict = {"seat"          : 200,
            "chair_back"    : 201,
@@ -41,6 +43,9 @@ id_dict = {"seat"          : 200,
            "leg_2"         : 151,
            "leg_3"         : 152,
            "leg_4"         : 153,
+           "leg_5"         : 154,
+           "leg_6"         : 155,
+           "leg_7"         : 156,
            "foot_1"        : 10,
            "foot_2"        : 11,
            "foot_3"        : 12,
@@ -52,7 +57,8 @@ id_dict = {"seat"          : 200,
            "back_1"        : 18,
            "back_2"        : 19,
            "screwdriver_1" : 20,
-           "screwdriver_2" : 21
+           "front_3"       : 22,
+           "front_4"       : 23,
 }
 
 def get_time_btw_state(arm_topic, bag_path):
