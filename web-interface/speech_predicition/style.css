@@ -176,6 +176,10 @@ section h2 {
     max-width: 100%;
 }
 
+#speech2TextStatus {
+  text-align: center;
+}
+
 @media(max-width: 768px) {
   section h2 {
     font-size: 3rem;

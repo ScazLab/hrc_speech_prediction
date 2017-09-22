@@ -97,8 +97,8 @@ var leftArmInfo = new ROSLIB.Topic({
 
 var speech2Text = new ROSLIB.Topic({
     ros : ros,
-    name: '/ros_speech2text/user_output',
-    messageType : 'ros_speech2text/transcript'
+    name: '/speech_to_text/log',
+    messageType : 'ros_speech2text/event'
 });
 
 // Service Client to interface with the left arm

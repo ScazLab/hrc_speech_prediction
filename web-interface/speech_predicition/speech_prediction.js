@@ -27,6 +27,11 @@ var obj_dict = {
     23:  "front 4"
 };
 
+var EVENT_STARTED = 0;
+var EVENT_STOPPED = 1;
+var EVENT_DECODED = 2;
+var EVENT_FAILED  = 3;
+
 // Create a left and right SVG, corresponding to the left and right tables
 // that baxter picks items up from
 var left_svg = d3.select("#left-svg-container").select("svg")
@@ -97,10 +102,28 @@ function armInfoCallback(msg,arm){
 
 function speech2TextCallback(msg){
 
-    var s = d3.select("#speech2Text");
+    var s = d3.select("#speech2TextStatus");
+    var t = d3.select("#speech2TextTranscription");
 
-    s.select("text")
-        .text("" + msg.transcript);
+    if (msg.event == EVENT_STARTED) {
+        s.classed("bg-info", true)
+            .text("[" + msg.utterance_id + "]");
+    } else if (msg.event == EVENT_STOPPED) {
+        s.classed("bg-info", false)
+            .text("");
+    } else if (msg.event == EVENT_DECODED) {
+        t.classed("alert-danger", false)
+         .classed("alert-info", true)
+            .text("[" + msg.utterance_id + "] " + msg.transcript.transcript);
+    } else if (msg.event == EVENT_FAILED) {
+        t.classed("alert-info", false)
+         .classed("alert-danger", true)
+            .text("[" + msg.utterance_id + "]  Failed to decode speech");
+    } else {
+        t.classed("alert-info", false)
+         .classed("alert-danger", true)
+            .text("Unkown event: " + msg.event);
+    }
 }
 
 function arucoCallback(markers,s){
