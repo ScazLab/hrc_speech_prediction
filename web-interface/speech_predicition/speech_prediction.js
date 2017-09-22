@@ -8,6 +8,9 @@ var obj_dict = {
     151: "leg 2",
     152: "leg 3",
     153: "leg 4",
+    154: "leg 5",
+    155: "leg 6",
+    156: "leg 7",
     10:  "foot 1",
     11:  "foot 2",
     12:  "foot 3",
@@ -19,7 +22,9 @@ var obj_dict = {
     18:  "back 1",
     19:  "back 2",
     20:  "screwdriver 1",
-    21:  "screwdriver 2"
+    21:  "screwdriver 2",
+    22:  "front 3",
+    23:  "front 4"
 };
 
 // Create a left and right SVG, corresponding to the left and right tables

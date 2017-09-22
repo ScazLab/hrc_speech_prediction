@@ -18,6 +18,9 @@
         "leg_2"      : 151
         "leg_3"      : 152
         "leg_4"      : 153
+        "leg_5"      : 154
+        "leg_6"      : 155
+        "leg_7"      : 156
     </rosparam>
 
     <!-- Objects database for the right arm -->
@@ -35,6 +38,8 @@
         "back_1"        : 18
         "back_2"        : 19
         "screwdriver_1" : 20
+        "front_3"       : 22
+        "front_4"       : 23
     </rosparam>
 
     <!-- CONTROL -->
@@ -46,7 +51,7 @@
     <param name="action_provider/internal_recovery" value="$(arg internal_recovery)"/>
     <!-- print level (shared throughout the control code) -->
     <arg name="print_level" default="0"/>
-    <rosparam param="/print_level">$(arg print_level)</rosparam>
+    <param name="print_level" value="$(arg print_level)" />
 
     <node pkg="human_robot_collaboration" type="sp_pred_action_provider" name="sp_pred_action_provider" output="screen">
         <remap from="/markers/left"  to="/baxter_aruco_left/markers"/>
@@ -63,26 +68,7 @@
     <!-- <include file="$(find svox_tts)/launch/svox_tts.launch" /> -->
 
     <!-- Speech to Text -->
-    <!-- <remap from="/speech_to_text/text" to="/svox_tts/speech_output"/>
-    <include file="$(find ros_speech2text)/launch/ros_speech2text.launch" /> -->
+    <remap from="/speech_to_text/text" to="/svox_tts/speech_output"/>
+    <include file="$(find ros_speech2text)/launch/ros_speech2text.launch" />
 
-    <!--ROSBAG -->
-    <arg name="record" default="true"/>
-    <!--  pass this as a commandline arg to launch file e.g
-    roslaunch human_robot_collaboration speech_predicition.launch participantID=42069-->
-    <arg name="participantID" default="test"/>
-    <arg name="bag_path" default="/home/$(env USER)/Desktop/speech_prediction_bags/$(arg participantID)/"/>
-
-    <arg name="bag_topics"
-         value= "/ros_speech2text/user_output
-                 /action_provider/left/state
-                 /action_provider/right/state
-                 /hsv_detector/objects
-                 /aruco_marker_publisher/markers
-                 /web_interface/log" />
-
-    <node pkg="data_logger" name="rosbag" type="data_logger" if="$(arg record)">
-        <param name="rosbag_record_args" value="--output-prefix=$(arg participantID) $(arg bag_topics)"/>
-        <param name="bag_path" value="$(arg bag_path)"/>
-    </node>
 </launch>

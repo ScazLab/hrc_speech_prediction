@@ -24,7 +24,7 @@ left_aruco_topic = '/baxter_aruco_left/markers'
 right_aruco_topic = '/baxter_aruco_right/markers'
 left_state_topic = '/action_provider/left/state'
 right_state_topic = '/action_provider/right/state'
-speech_topic = '/ros_speech2text/user_output'
+speech_topic = '/speech_to_text/log'
 web_topic = '/web_interface/log'
 
 right_obj_dict = c.OrderedDict([(10, 0), (11, 0), (12,0),

@@ -92,6 +92,9 @@
                     <label class="btn btn-primary btn-lg" id="d_feet">
                         <input type="radio" name="options" id="q_feet" autocomplete="off" checked>FEET...
                     </label>
+                    <label class="btn btn-primary btn-lg" id="d_fronts">
+                        <input type="radio" name="options" id="q_fronts" autocomplete="off" checked>FRONTS...
+                    </label>
                     <button type="button" class="btn btn-info btn-lg">hold top</button>
                     <button type="button" class="btn btn-info btn-lg">hold leg</button>
                 </div>
@@ -103,7 +106,6 @@
                   <button type="button" class="btn btn-info btn-lg">top_1</button>
                   <button type="button" class="btn btn-info btn-lg">top_2</button>
                   <button type="button" class="btn btn-info btn-lg">screwdriver_1</button>
-                  <button type="button" class="btn btn-info btn-lg">screwdriver_2</button>
                 </div>
                 <div id="container-cleanup" style="display: none;">
                   <button type="button" class="btn btn-info btn-lg">c_screwdriver</button>
@@ -119,6 +121,9 @@
                     <button type="button" class="btn btn-info btn-lg">leg_2</button>
                     <button type="button" class="btn btn-info btn-lg">leg_3</button>
                     <button type="button" class="btn btn-info btn-lg">leg_4</button>
+                    <button type="button" class="btn btn-info btn-lg">leg_5</button>
+                    <button type="button" class="btn btn-info btn-lg">leg_6</button>
+                    <button type="button" class="btn btn-info btn-lg">leg_7</button>
                   <button type="button" class="btn btn-danger btn-lg">RETURN</button>
                 </div>
                 <div id="container-feet" style="display: none;">
@@ -128,6 +133,12 @@
                     <button type="button" class="btn btn-info btn-lg">foot_4</button>
                   <button type="button" class="btn btn-danger btn-lg">RETURN</button>
                 </div>
+                <div id="container-fronts" style="display: none;">
+                    <button type="button" class="btn btn-info btn-lg">front_1</button>
+                    <button type="button" class="btn btn-info btn-lg">front_2</button>
+                    <button type="button" class="btn btn-info btn-lg">front_3</button>
+                    <button type="button" class="btn btn-info btn-lg">front_4</button>
+                  <button type="button" class="btn btn-danger btn-lg">RETURN</button>
             </div>
         </div>
     <div id="status" class="container">
@@ -185,22 +196,38 @@
   $('#d_feet').on("click",function(){
        document.getElementById('container-default').style.display = 'none';
        document.getElementById('container-legs').style.display = 'none';
+       document.getElementById('container-fronts').style.display = 'none';
        document.getElementById('container-feet').style.display = 'block';
     });
-    $('#d_legs').on("click",function(){
+ $('#d_fronts').on("click",function(){
+       document.getElementById('container-default').style.display = 'none';
+       document.getElementById('container-legs').style.display = 'none';
+       document.getElementById('container-fronts').style.display = 'block';
+       document.getElementById('container-feet').style.display = 'none';
+    });
+ $('#d_legs').on("click",function(){
        document.getElementById('container-default').style.display = 'none';
        document.getElementById('container-legs').style.display = 'block';
        document.getElementById('container-feet').style.display = 'none';
+       document.getElementById('container-fronts').style.display = 'none';
     });
  d3.select("#container-legs").selectAll("button").on("click",function(){
        document.getElementById('container-default').style.display = 'block';
        document.getElementById('container-legs').style.display = 'none';
+       document.getElementById('container-fronts').style.display = 'none';
        document.getElementById('container-feet').style.display = 'none';
  });
 
  d3.select("#container-feet").selectAll("button").on("click",function(){
        document.getElementById('container-default').style.display = 'block';
        document.getElementById('container-legs').style.display = 'none';
+       document.getElementById('container-fronts').style.display = 'none';
+       document.getElementById('container-feet').style.display = 'none';
+ });
+ d3.select("#container-fronts").selectAll("button").on("click",function(){
+       document.getElementById('container-default').style.display = 'block';
+       document.getElementById('container-legs').style.display = 'none';
+       document.getElementById('container-fronts').style.display = 'none';
        document.getElementById('container-feet').style.display = 'none';
  });
  d3.select("#experiment-toggle").selectAll("button").on("click",function(){
