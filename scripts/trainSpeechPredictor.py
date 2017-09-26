@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 import logging
 import rospy
 import rosbag
@@ -14,10 +15,10 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s')
 logging.debug('This is a log message.')
 
-bag_dir_path = sys.argv[1]
+BAG_DIR_PATH = sys.argv[1]
 
-model_path = "../models/speech_model.pkl"
-vocab_path = "../models/vocab.pkl"
+MODEL_PATH = "../models/speech_model.pkl"
+VOCAB_PATH = "../models/vocab.pkl"
 
 # Ros topics we have recorded
 left_aruco_topic = '/baxter_aruco_left/markers'
@@ -27,14 +28,14 @@ right_state_topic = '/action_provider/right/state'
 speech_topic = '/speech_to_text/log'
 web_topic = '/web_interface/log'
 
-right_obj_dict = c.OrderedDict([(10, 0), (11, 0), (12,0),
-                                (13,0), (14,0), (15,0),
-                                (16,0), (17,0), (18,0),
-                                (19,0), (20, 0), (21,0),
-                                (22,0), (23,0)])
+right_obj_dict = c.OrderedDict([(10, 0), (11, 0), (12, 0),
+                                (13, 0), (14, 0), (15, 0),
+                                (16, 0), (17, 0), (18, 0),
+                                (19, 0), (20, 0), (21, 0),
+                                (22, 0), (23, 0)])
 
 left_obj_dict = c.OrderedDict([(150, 0), (151, 0), (152, 0),
-                                (153, 0), (154, 0), (155,0),
+                               (153, 0), (154, 0), (155, 0),
                                (156, 0), (200, 0), (201, 0)])
 
 id_dict = {"seat"          : 200,
@@ -59,7 +60,8 @@ id_dict = {"seat"          : 200,
            "screwdriver_1" : 20,
            "front_3"       : 22,
            "front_4"       : 23,
-}
+           }
+
 
 def get_time_btw_state(arm_topic, bag_path):
     """returns list of approximate timeframes of when robots arms
@@ -85,7 +87,7 @@ def get_time_btw_state(arm_topic, bag_path):
             s = False
             t_frame = ()
 
-        ## THIS is will be appended as a singleton
+        # THIS is will be appended as a singleton
         # This denotes an arm has reached its end state
         last_t = (t, )
 
@@ -136,7 +138,7 @@ from above function"""
                 else:
                     env_vec.append(0)
 
-            #logging.debug( obj_dict)
+            # logging.debug(obj_dict)
             obj_dict = obj_dict.fromkeys(obj_dict, 0)
             total_msgs = 0.
             vec_of_vecs.append(env_vec)
@@ -159,7 +161,7 @@ from above function"""
         else:
             env_vec.append(0)
 
-    # logging.debug( obj_dict)
+    # logging.debug(obj_dict)
     obj_dict = obj_dict.fromkeys(obj_dict, 0)
     total_msgs = 0.
     vec_of_vecs.append(env_vec)
@@ -254,15 +256,12 @@ def create_vocab(bag_dir_path):
     return vocab
 
 
-
-
 def create_data_set(bag_dir_path, vocab):
     """Given a rosbag dir path or a list of paths, constructs
     Numpy arrays of data and labels to be used"""
     training_X = []
     training_Y = np.array([])
     Xs = []
-    Ss =[]
     Ys = []
 
     for filename in os.listdir(bag_dir_path):
@@ -301,24 +300,20 @@ def evaluate_model(model, vocab, bag_dir_path):
         elif prediction == actual:
             counter += 1
         else:
-            print
-            print "Pred.: ", prediction
-            print "Actual: ", actual
-            print
+            print("Predicted: {} for (real): {}".format(prediction, actual))
 
-    print "{}% of labels correctly predicited!".format(counter / float(size) * 100)
+    print("{}% of labels correctly predicited!".format(counter / float(size) * 100))
 
 
 if __name__ == '__main__':
-    v = create_vocab(bag_dir_path)
-    X,Y = create_data_set(bag_dir_path, v)
-
+    v = create_vocab(BAG_DIR_PATH)
+    X, Y = create_data_set(BAG_DIR_PATH, v)
 
     model = GaussianNB()
-    model.fit(X,Y)
+    model.fit(X, Y)
 
-    with open(model_path,"wb") as m:
-        joblib.dump(model,m, compress=9)
+    with open(MODEL_PATH, "wb") as m:
+        joblib.dump(model, m, compress=9)
 
-    with open(vocab_path,"wb") as m:
-        joblib.dump(v,m, compress=9)
+    with open(VOCAB_PATH, "wb") as m:
+        joblib.dump(v, m, compress=9)
