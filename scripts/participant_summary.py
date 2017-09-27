@@ -54,12 +54,18 @@ class ActionDetector(object):
                 if self.state != self.WORKING:
                     print('[WARNING] ignoring DONE while not working.')
                 else:
-                    self.callback(self.current, self.start, m.timestamp)
-                    self.state = self.DONE
+                    self._end_action(m)
             elif m.message.state in ('ERROR', 'KILLED'):
                 self.state = self.ERROR
             else:
                 raise ValueError('Unknown state {}'.format(m.message.state))
+        elif m.message.action == 'home':
+            if self.current is not None:
+                self._end_action(m)
+
+    def _end_action(self, m):
+        self.callback(self.current, self.start, m.timestamp)
+        self.state = self.DONE
 
 
 class SpeechActionPairer(object):
@@ -177,5 +183,8 @@ if __name__ == "__main__":
                 t, topics[t].message_count, topics[t].msg_type))
         pairer = parse_bag(b)
         print('\nAssociation:')
-        for a, u in pairer.get_associations():
+        pairs = list(pairer.get_associations())
+        for a, u in pairs:
             print(a[0], ' | '.join([uu[0] for uu in u]))
+        print("Total: {} actions found with {} non-empty utterances.".format(
+            len(pairs), sum([len(u) > 0 for a, u in pairs])))
