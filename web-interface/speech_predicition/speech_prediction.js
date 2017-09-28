@@ -2,7 +2,7 @@ var width  = 640,
     height = 480;
 
 var obj_dict = {
-    200: "seat",
+    198: "seat",
     201: "chair back",
     150: "leg 1",
     151: "leg 2",

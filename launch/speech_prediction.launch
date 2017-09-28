@@ -12,7 +12,7 @@
 
     <!-- Objects database for the left arm -->
     <rosparam param = "action_provider/objects_left">
-        "seat"       : 200
+        "seat"       : 198
         "chair_back" : 201
         "leg_1"      : 150
         "leg_2"      : 151
@@ -29,8 +29,6 @@
         "foot_2"        : 11
         "foot_3"        : 12
         "foot_4"        : 13
-        "foot_5"        : 22
-        "foot_6"        : 23
         "front_1"       : 14
         "front_2"       : 15
         "top_1"         : 16
@@ -71,7 +69,7 @@
     <arg name="audio_path" default="/home/$(env USER)/Desktop/speech_prediction_bags/ExperimentAudio/"/>
     <param name="/ros_speech2text/speech_history" value="$(arg audio_path)"/>
     <param name="/ros_speech2text/cleanup" value="false"/>
-    <remap from="/speech_to_text/text" to="/svox_tts/speech_output"/>
+    <!-- <remap from="/speech_to_text/text" to="/svox_tts/speech_output"/> -->
     <include file="$(find ros_speech2text)/launch/ros_speech2text.launch" />
 
 </launch>
