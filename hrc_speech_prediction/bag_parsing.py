@@ -107,6 +107,17 @@ class SpeechActionPairer(object):
         yield (prev_action, prev_utterances)
 
 
+def guess_participant_id(data_path, prefix):
+    files = sorted(os.listdir(os.path.expanduser(data_path)))
+    candidates = [f for f in files if (
+        f.startswith(prefix) and os.path.isdir(os.path.join(data_path, f)))]
+    if len(candidates) == 0:
+        raise FileNotFoundError("Could not find any file starting with {} at "
+                                "the given path.".format(prefix))
+    else:
+        return candidates[0]
+
+
 def participant_bags(data_path, participant):
     participant_dir = os.path.expanduser(os.path.join(data_path, participant))
     files = sorted(os.listdir(participant_dir))

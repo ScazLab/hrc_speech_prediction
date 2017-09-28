@@ -3,7 +3,8 @@
 import os
 import argparse
 
-from hrc_speech_prediction.bag_parsing import participant_bags, parse_bag
+from hrc_speech_prediction.bag_parsing import (participant_bags, guess_participant_id,
+                                               parse_bag)
 
 
 parser = argparse.ArgumentParser("Displays the bag as a log of relevant information")
@@ -14,8 +15,9 @@ parser.add_argument('participant', help='id of the participant')
 if __name__ == "__main__":
 
     args = parser.parse_args()
+    participant = guess_participant_id(args.path, args.participant)
 
-    for b in participant_bags(args.path, args.participant):
+    for b in participant_bags(args.path, participant):
         print('\nNew Session: {} ({})\n'.format(args.participant,
                                                 b.filename.split('/')[-1]))
         print('Topics:')
