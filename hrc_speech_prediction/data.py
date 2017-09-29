@@ -11,7 +11,7 @@ class TrainData(object):
     """Contains training data.
 
     data:
-    {paricipant_id: [(trial_instruction, trial_pairs)]
+    {paricipant_id: [(trial_instruction, trial_pairs, initial_time)]
     }
 
     where trial_pairs are: ((action, start_time, end_time),
@@ -33,7 +33,7 @@ class TrainData(object):
     def count_by_instructions(self):
         counts = {}
         for participant in self.data:
-            for i, _ in self.data[participant]:
+            for i, _, _ in self.data[participant]:
                 counts[i] = 1 + counts.get(i, 0)
         return counts
 
