@@ -12,6 +12,10 @@ ACTION_TOPICS = ['/action_provider/{}/state'.format(s)
 SPEECH_TOPIC = '/speech_to_text/log'
 
 
+def _relative_time(rospy_time, start_time):
+    return rospy_time.to_sec() - start_time
+
+
 class ActionDetector(object):
 
     """Detects completed actions.
@@ -67,7 +71,8 @@ class SpeechActionPairer(object):
     - an utterance is associated with an action if it starts after the previous
     action has started,
     - the class uses two pass to first sort events by starting time (which is
-    not the reporting time) and then pair them.
+    not the reporting time) and then pair them,
+    - also returns relative times as floats in seconds.
 
     TODO: also add a maximum time for a sentence to start before the action it
           is associated to.
@@ -76,8 +81,9 @@ class SpeechActionPairer(object):
     ACTION = 0
     UTTERANCE = 1
 
-    def __init__(self):
+    def __init__(self, initial_time):
         self.events = []
+        self.initial_time = initial_time
 
     def new_action(self, action, t_start, t_end):
         self.events.append((self.ACTION, action, t_start, t_end))
@@ -87,24 +93,31 @@ class SpeechActionPairer(object):
 
     def get_associations(self):
         events = sorted(self.events, key=lambda e: e[2])
-        prev_action = (None, 0, 0)
+        prev_action = (None, -1., -1.)
         prev_utterances = []
         cur_utterances = []
         for e in events:
             if e[0] == self.ACTION:
                 if e[1] == prev_action[0]:
-                    prev_action = e[1:]  # update action to keep time of
-                    # the last observed trial (the previous must have failed)
+                    prev_action = self._times_to_relative(e[1:])
+                    # update action to keep time of the last observed trial
+                    # (the previous must have failed)
                     prev_utterances.extend(cur_utterances)
                 else:
                     if prev_action[0] is not None:
                         yield (prev_action, prev_utterances)
                     prev_utterances = cur_utterances
-                    prev_action = e[1:]
+                    prev_action = self._times_to_relative(e[1:])
                 cur_utterances = []
             elif e[0] == self.UTTERANCE:
-                cur_utterances.append(e[1:])
+                cur_utterances.append(self._times_to_relative(e[1:]))
         yield (prev_action, prev_utterances)
+
+    def _times_to_relative(self, timed_action_or_utterance):
+        a_or_u, t_start, t_end = timed_action_or_utterance
+        return (a_or_u,
+                _relative_time(t_start, self.initial_time),
+                _relative_time(t_end, self.initial_time))
 
 
 def guess_participant_id(data_path, prefix):
@@ -149,17 +162,16 @@ def format_message_time(message, start_time):
 
 
 def format_time(time, start_time):
-    delta = time.to_sec() - start_time
+    delta = _relative_time(time, start_time)
     minutes = math.floor(delta / 60)
     return "{:.0f}:{:04.1f}".format(minutes, delta - 60 * minutes)
 
 
 def parse_bag(bag):
-    pairer = SpeechActionPairer()
+    pairer = SpeechActionPairer(bag.get_start_time())
     left_detector = ActionDetector(pairer.new_action)
     right_detector = ActionDetector(pairer.new_action)
     for m in bag.read_messages():
-        pretty_print(m, start_time=bag.get_start_time())
         if m.topic == ACTION_TOPICS[0]:
             left_detector.new_state(m)
         elif m.topic == ACTION_TOPICS[1]:

@@ -4,7 +4,7 @@ import os
 import argparse
 
 from hrc_speech_prediction.bag_parsing import (participant_bags, guess_participant_id,
-                                               parse_bag)
+                                               bag_summary, parse_bag)
 
 
 parser = argparse.ArgumentParser("Displays the bag as a log of relevant information")
@@ -25,6 +25,7 @@ if __name__ == "__main__":
         for t in topics:
             print('- {}: {} messages of type {}'.format(
                 t, topics[t].message_count, topics[t].msg_type))
+        bag_summary(b)
         pairer = parse_bag(b)
         print('\nAssociation:')
         pairs = list(pairer.get_associations())
