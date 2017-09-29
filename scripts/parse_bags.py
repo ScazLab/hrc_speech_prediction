@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 import os
-import json
 import argparse
 
+from hrc_speech_prediction.data import TrainData
 from hrc_speech_prediction.bag_parsing import participant_bags, parse_bag
 
 
@@ -12,7 +12,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument('path', help='path to the experiment files', default=os.path.curdir)
 
 
-SESSIONS = {
+PARTICIPANTS = {
     '1.ABC':  ['B', 'C'],
     '2.BCA':  ['B', 'C'],  # , 'A'], # for some reason last bag is not readable
     '3.CAB':  ['C', 'A', 'B'],
@@ -27,17 +27,15 @@ SESSIONS = {
 }
 
 
-def session_to_dict(path, participant, instructions):
-    files = []
-    associations = {}
+def participant_to_list(path, participant, instructions):
+    associations = []
     bags = participant_bags(path, participant)
     for b, instr in zip(bags, instructions):
-        files.append(b.filename)
         print('\nLoading: {} ({}: {})'.format(participant, instr,
                                               os.path.split(b.filename)[-1]))
         pairer = parse_bag(b)
         pairs = list(pairer.get_associations())
-        associations.get(instr, []).extend(pairs)  # Append if split bag
+        associations.append((instr, pairs))
         print("Total: {} actions found with {} non-empty utterances.".format(
             len(pairs), sum([len(u) > 0 for a, u in pairs])))
     try:
@@ -47,25 +45,22 @@ def session_to_dict(path, participant, instructions):
     else:
         raise ValueError('Too many bag files for {} (expected {})'.format(
             participant, len(bags)))
-    return {'instructions': instructions,
-            'associations': pairs,
-            'sources': files,
-            }
+    return associations
 
 
 if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    data = {p: session_to_dict(args.path, p, SESSIONS[p])
-            for p in SESSIONS}
-    all_instructions = [i for session in data
-                        for i in data[session]['instructions']]
+    data = TrainData({p: participant_to_list(args.path, p, PARTICIPANTS[p])
+                      for p in PARTICIPANTS})
+
+    # TODO: patch data
+
+    counts = data.count_by_instructions()
     print("\nTotal for instructions: " +
-          ", ".join(["{}: {}".format(x, all_instructions.count(x))
-                     for x in ['A', 'B', 'C']])
+          ", ".join(["{}: {}".format(x, counts[x]) for x in counts])
           )
     out_path = os.path.join(args.path, 'train.json')
-    with open(out_path, 'w') as f:
-        json.dump(data, f, indent=2)
-    print("Written: {} sessions to {}".format(len(SESSIONS), out_path))
+    data.dump(out_path)
+    print("Written: {} participants to {}".format(data.n_participants, out_path))
