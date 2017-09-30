@@ -119,6 +119,9 @@ class TrainData(object):
 
     def __init__(self, data):
         self.data = data
+        self.reset_ids()
+
+    def reset_ids(self):
         first_ids = cumsum_from_0([self.data[p].n_samples for p in self.data])
         for i, p in zip(first_ids, self.data):
             self.data[p].set_first_id(i)
@@ -138,6 +141,14 @@ class TrainData(object):
     @property
     def ids(self):
         return chain.from_iterable([self.data[p].ids for p in self.data])
+
+    @property
+    def utterances(self):
+        return chain.from_iterable([self.data[p].utterances for p in self.data])
+
+    @property
+    def labels(self):
+        return chain.from_iterable([self.data[p].labels for p in self.data])
 
     def get_pair_from_id(self, i):
         session_idx = bisect_start_id([self.data[p].first_id
