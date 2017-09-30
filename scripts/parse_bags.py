@@ -13,19 +13,20 @@ parser = argparse.ArgumentParser(
 parser.add_argument('path', help='path to the experiment files', default=os.path.curdir)
 
 
-PARTICIPANTS = {
-    '1.ABC':  ['B', 'C'],
-    '2.BCA':  ['B', 'C'],  # , 'A'], # for some reason last bag is not readable
-    '3.CAB':  ['C', 'A', 'B'],
-    '4.ABC':  ['A', 'B', 'C'],
-    '5.BCA':  ['B', 'C', 'A'],
-    '6.CAB':  ['C', 'A', 'B'],
-    '7.ABC':  ['A', 'B'],
-    '8.BCA':  ['B', 'B', 'C'],  # First split in two. Only two.
-    '9.CAB':  ['C', 'A', 'B'],
-    '10.ABC': ['A', 'B', 'C'],
-    '11.BCA': ['A'],
-}
+PARTICIPANTS = OrderedDict([
+    ('1.ABC',  ['B', 'C']),
+    ('2.BCA',  ['B', 'C']),  # , 'A'], # for some reason last bag is not readable
+    ('3.CAB',  ['C', 'A', 'B']),
+    ('4.ABC',  ['A', 'B', 'C']),
+    ('5.BCA',  ['B', 'C', 'A']),
+    ('6.CAB',  ['C', 'A', 'B']),
+    ('7.ABC',  ['A', 'B']),
+    ('8.BCA',  ['B', 'B', 'C']),  # First split in two. Only two.
+    ('9.CAB',  ['C', 'A', 'B']),
+    ('10.ABC', ['A', 'B', 'C']),
+    ('11.BCA', ['A']),
+    ('12.CAB', ['C', 'A', 'B']),
+])
 
 
 # Data clean functions
@@ -70,6 +71,13 @@ def rename_wrong_actions_in_first_sessions(data):
                   t.initial_time)
             for t in data.data[participant]
         ])
+
+
+def remove_initial_utterance_in_12_3(data):
+    P12 = '12.CAB'
+    session = data.data[P12]
+    assert(session[2].pairs[0][1][0].startswith('scary scary'))
+    session[2].pairs[0][1].pop(0)
 
 
 CLEAN_FUNCTIONS = [
