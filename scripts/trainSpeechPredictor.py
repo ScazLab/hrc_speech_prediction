@@ -118,9 +118,9 @@ from above function"""
     total_msgs = 0.
 
     if arm_topic == right_state_topic:
-        cam_topic = hsv_topic
-    else:
         cam_topic = right_aruco_topic
+    else:
+        cam_topic = left_aruco_topic
 
     for topic, msg, t in bag.read_messages(topics=[cam_topic]):
         if t < t_frame[1] and t > t_frame[0]:
@@ -151,7 +151,7 @@ from above function"""
 
     # This bit of repeated code accounts for the case when the calculated duration
     # of the final state is greater than the actual last timestamp of
-    # aruco/hsv msggs
+    # aruco msgs
     env_vec = []
 
     for k in sorted(obj_dict.keys()):
