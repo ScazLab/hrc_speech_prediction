@@ -23,6 +23,18 @@ def bisect_start_id(start_ids, i):
     return bisect(start_ids, i) - 1
 
 
+TimedAction = namedtuple('TimedAction', ['label', 't_start', 't_end'])
+
+
+TimedUtterance = namedtuple('TimedUtterance', ['utterance', 't_start', 't_end'])
+
+
+def _pairs_to_timed_actions_and_utterances(pairs):
+    return [(TimedAction(p[0][0], p[0][1], p[0][2]),
+             [TimedUtterance(u[0], u[1], u[2]) for u in p[1]])
+            for p in pairs]
+
+
 _Trial = namedtuple('Trial', ['instruction', 'pairs', 'initial_time'])
 
 
@@ -38,11 +50,12 @@ class Trial(_Trial):
 
     @property
     def utterances(self):
-        return [' '.join([u[0] for u in pair[1]]) for pair in self.pairs]
+        return [' '.join([u.utterance for u in utterances])
+                for _, utterances in self.pairs]
 
     @property
     def labels(self):
-        return [pair[0][0] for pair in self.pairs]
+        return [action.label for action, _ in self.pairs]
 
     def set_first_id(self, i):
         self._first_id = i
@@ -102,14 +115,16 @@ class Session(list):
     @classmethod
     def deserialize(cls, lst):
         assert(all([len(t) == 3 for t in lst]))
-        return cls([Trial(instruction=t[0], pairs=t[1], initial_time=t[2])
+        return cls([Trial(instruction=t[0],
+                          pairs=_pairs_to_timed_actions_and_utterances(t[1]),
+                          initial_time=t[2])
                     for t in lst])
 
 
 class TrainData(object):
     """Contains training data.
 
-    data:
+    session:
     {paricipant_id: [(trial_instruction, trial_pairs, initial_time)]
     }
 

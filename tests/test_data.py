@@ -1,16 +1,20 @@
 from unittest import TestCase
 from collections import OrderedDict
 
-from hrc_speech_prediction.data import Trial, Session, TrainData
+from hrc_speech_prediction.data import (Trial, Session, TrainData, TimedAction,
+                                        TimedUtterance)
 
 
 class TestTrial(TestCase):
 
     def setUp(self):
-        self.pairs = [(('action_1', .1, .2),
-                       [('blah blah', .0, .05), ('blah again', .06, .07)]),
-                      (('action_2', .3, .4), [('do action2', .25, .3)]),
-                      (('action_3', .6, .8), [('nonsense', .25, .3)]),
+        self.pairs = [(TimedAction('action_1', .1, .2),
+                       [TimedUtterance('blah blah', .0, .05),
+                        TimedUtterance('blah again', .06, .07)]),
+                      (TimedAction('action_2', .3, .4),
+                       [TimedUtterance('do action2', .25, .3)]),
+                      (TimedAction('action_3', .6, .8),
+                       [TimedUtterance('nonsense', .25, .3)]),
                       ]
         self.trial = Trial('A', self.pairs, .0)
 
@@ -45,11 +49,14 @@ class TestTrial(TestCase):
 class TestSession(TestCase):
 
     def setUp(self):
-        self.pairs1 = [(('action_1', .1, .2),
-                        [('blah blah', .0, .05), ('blah again', .06, .07)]),
-                       (('action_2', .3, .4), [('do action2', .25, .3)]),
+        self.pairs1 = [(TimedAction('action_1', .1, .2),
+                        [TimedUtterance('blah blah', .0, .05),
+                         TimedUtterance('blah again', .06, .07)]),
+                       (TimedAction('action_2', .3, .4),
+                        [TimedUtterance('do action2', .25, .3)]),
                        ]
-        self.pairs2 = [(('action_3', 1.6, 1.8), [('nonsense', 1.25, 1.3)])]
+        self.pairs2 = [(TimedAction('action_3', 1.6, 1.8),
+                        [TimedUtterance('nonsense', 1.25, 1.3)])]
         self.session = Session([Trial('B', self.pairs1, .0),
                                 Trial('A', self.pairs2, 1.)])
 
@@ -85,12 +92,16 @@ class TestSession(TestCase):
 class TestTrainData(TestCase):
 
     def setUp(self):
-        self.pairs1 = [(('action_1', .1, .2),
-                        [('blah blah', .0, .05), ('blah again', .06, .07)]),
-                       (('action_2', .3, .4), [('do action2', .25, .3)]),
+        self.pairs1 = [(TimedAction('action_1', .1, .2),
+                        [TimedUtterance('blah blah', .0, .05),
+                         TimedUtterance('blah again', .06, .07)]),
+                       (TimedAction('action_2', .3, .4),
+                        [TimedUtterance('do action2', .25, .3)]),
                        ]
-        self.pairs2 = [(('action_3', 1.6, 1.8), [('nonsense', 1.25, 1.3)])]
-        self.pairs3 = [(('action_1', .2, .3), [('Hello robot', .1, .13)])]
+        self.pairs2 = [(TimedAction('action_3', 1.6, 1.8),
+                        [TimedUtterance('nonsense', 1.25, 1.3)])]
+        self.pairs3 = [(TimedAction('action_1', .2, .3),
+                        [TimedUtterance('Hello robot', .1, .13)])]
         self.trial1 = Trial('B', self.pairs1, .0)
         self.trial2 = Trial('A', self.pairs2, 1.)
         self.trial3 = Trial('A', self.pairs3, 4.)
