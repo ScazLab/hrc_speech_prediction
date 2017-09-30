@@ -1,5 +1,9 @@
 import json
+from bisect import bisect
+from itertools import chain
 from collections import namedtuple, OrderedDict
+
+import numpy as np
 
 
 # Note on terminology:
@@ -8,14 +12,89 @@ from collections import namedtuple, OrderedDict
 #   an instruction (sheet)
 
 
-Trial = namedtuple('Trial', ['instruction', 'pairs', 'initial_time'])
+def cumsum_from_0(iterable):
+    return [0] + list(np.cumsum(iterable)[:-1])
+
+
+def bisect_start_id(start_ids, i):
+    """bisect a list of starting ids for contiguous subsets and return
+       in which subset i belongs.
+    """
+    return bisect(start_ids, i) - 1
+
+
+_Trial = namedtuple('Trial', ['instruction', 'pairs', 'initial_time'])
+
+
+class Trial(_Trial):
+
+    def __init__(self, *args, **kwargs):
+        super(Trial, self).__init__(*args, **kwargs)
+        self._first_id = None
+
+    @property
+    def n_samples(self):
+        return len(self.pairs)
+
+    @property
+    def utterances(self):
+        return [' '.join([u[0] for u in pair[1]]) for pair in self.pairs]
+
+    @property
+    def labels(self):
+        return [pair[0][0] for pair in self.pairs]
+
+    def set_first_id(self, i):
+        self._first_id = i
+
+    @property
+    def first_id(self):
+        if self._first_id is None:
+            raise ValueError('First id not set.')
+        return self._first_id
+
+    @property
+    def ids(self):
+        return [self.first_id + i for i, _ in enumerate(self.pairs)]
+
+    def get_pair_from_id(self, i):
+        return self.pairs[i - self.first_id]
 
 
 class Session(list):
 
     @property
+    def n_samples(self):
+        return sum([trial.n_samples for trial in self])
+
+    @property
     def order(self):
         return [t.instruction for t in self]
+
+    @property
+    def utterances(self):
+        return chain.from_iterable([trial.utterances for trial in self])
+
+    @property
+    def labels(self):
+        return chain.from_iterable([trial.labels for trial in self])
+
+    def set_first_id(self, i):
+        id_deltas = cumsum_from_0([trial.n_samples for trial in self])
+        for d, trial in zip(id_deltas, self):
+            trial.set_first_id(i + d)
+
+    @property
+    def first_id(self):
+        return self[0].first_id
+
+    @property
+    def ids(self):
+        return chain.from_iterable([trial.ids for trial in self])
+
+    def get_pair_from_id(self, i):
+        trial_idx = bisect_start_id([trial.first_id for trial in self], i)
+        return self[trial_idx].get_pair_from_id(i)
 
     def from_instruction(self, instruction):
         return self[self.order.index(instruction)]
@@ -40,15 +119,38 @@ class TrainData(object):
 
     def __init__(self, data):
         self.data = data
+        first_ids = cumsum_from_0([self.data[p].n_samples for p in self.data])
+        for i, p in zip(first_ids, self.data):
+            self.data[p].set_first_id(i)
+
+    @property
+    def participants(self):
+        return [p for p in self.data]
 
     @property
     def n_participants(self):
         return len(self.data)
 
+    @property
+    def n_samples(self):
+        return sum([self.data[p].n_samples for p in self.data])
+
+    @property
+    def ids(self):
+        return chain.from_iterable([self.data[p].ids for p in self.data])
+
+    def get_pair_from_id(self, i):
+        session_idx = bisect_start_id([self.data[p].first_id
+                                       for p in self.data], i)
+        return self.data[self.participants[session_idx]].get_pair_from_id(i)
+
     def all_trials(self):
         for participant in self.data:
             for x in self.data[participant]:
                 yield x
+
+    def all_words(self):
+        raise NotImplementedError
 
     def count_by_instructions(self):
         counts = {}
@@ -56,9 +158,6 @@ class TrainData(object):
             for i in self.data[participant].order:
                 counts[i] = 1 + counts.get(i, 0)
         return counts
-
-    def all_words(self):
-        raise NotImplementedError
 
     def dump(self, path):
         with open(path, 'w') as f:
