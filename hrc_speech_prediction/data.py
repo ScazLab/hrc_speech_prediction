@@ -121,6 +121,17 @@ class TrainData(object):
         self.data = data
         self.reset_ids()
 
+    def guess_participant(self, prefix, first_on_multiple=False):
+        candidates = [p for p in self.participants
+                      if p.startswith(prefix)]
+        if len(candidates) == 0:
+            raise ValueError('Cannot find participant with name starting in ' +
+                             prefix)
+        elif not first_on_multiple and len(candidates) > 1:
+            raise ValueError('Several participants start with ' + prefix)
+        else:
+            return candidates[0]
+
     def reset_ids(self):
         first_ids = cumsum_from_0([self.data[p].n_samples for p in self.data])
         for i, p in zip(first_ids, self.data):
