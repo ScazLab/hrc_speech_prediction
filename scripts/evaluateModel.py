@@ -19,7 +19,7 @@ class evaluateModel(object):
         self.model = model
         self.args = kwargs
         self.m_features, _ = features.get_context_features(self.data)
-        self.m_speech, _ = features.get_bow_features(self.data)
+        self.m_speech, _ = features.get_bow_features(self.data, use_idf=False)
         self.m_all = np.concatenate(
             (self.m_features, self.m_speech.toarray()), axis=1)
 
@@ -192,6 +192,6 @@ class evaluateModel(object):
 if __name__ == '__main__':
     #path = "/home/scazlab/Desktop/speech_prediction_bags/ExperimentData/"
     path = "/home/ros/ros_ws/src/hrc_speech_prediction/"
-    ev = evaluateModel(LogisticRegression, path, penalty="l1")
+    ev = evaluateModel(BernoulliNB, path)
     ev.test_all()
     # ev.test_on_one_participant()
