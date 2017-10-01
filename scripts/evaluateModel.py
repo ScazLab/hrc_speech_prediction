@@ -11,12 +11,13 @@ from hrc_speech_prediction import data, features
 
 
 parser = argparse.ArgumentParser("Train and evaluate classifier")
-parser.add_argument('path', help='path to the experiment data', default=os.path.curdir)
+parser.add_argument('path', help='path to the experiment data',
+                    default=os.path.curdir)
 
 
 class evaluateModel(object):
 
-    def __init__(self, model, data_path, **kwargs):
+    def __init__(self, model, data_path, n_grams=(1, 1), **kwargs):
         """
         Given a model and a path to the data, will run a number of different
         evaluations
@@ -25,7 +26,9 @@ class evaluateModel(object):
         self.model = model
         self.args = kwargs
         self.m_features, _ = features.get_context_features(self.data)
-        self.m_speech, _ = features.get_bow_features(self.data, tfidf=False)
+        self.m_speech, _ = features.get_bow_features(self.data,
+                                                         tfidf=False,
+                                                         n_grams=n_grams)
         self.m_all = np.concatenate(
             (self.m_features, self.m_speech.toarray()), axis=1)
 
@@ -198,6 +201,6 @@ class evaluateModel(object):
 if __name__ == '__main__':
     args = parser.parse_args()
 
-    ev = evaluateModel(BernoulliNB, args.path)
+    ev = evaluateModel(LogisticRegression, args.path, n_grams=(2,2))
     ev.test_all()
     # ev.test_on_one_participant()
