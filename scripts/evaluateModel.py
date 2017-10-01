@@ -1,4 +1,5 @@
 import os
+import argparse
 
 import numpy as np
 from sklearn import metrics
@@ -9,7 +10,12 @@ from sklearn.neighbors import KNeighborsClassifier
 from hrc_speech_prediction import data, features
 
 
+parser = argparse.ArgumentParser("Train and evaluate classifier")
+parser.add_argument('path', help='path to the experiment data', default=os.path.curdir)
+
+
 class evaluateModel(object):
+
     def __init__(self, model, data_path, **kwargs):
         """
         Given a model and a path to the data, will run a number of different
@@ -19,7 +25,7 @@ class evaluateModel(object):
         self.model = model
         self.args = kwargs
         self.m_features, _ = features.get_context_features(self.data)
-        self.m_speech, _ = features.get_bow_features(self.data, use_idf=False)
+        self.m_speech, _ = features.get_bow_features(self.data, tfidf=False)
         self.m_all = np.concatenate(
             (self.m_features, self.m_speech.toarray()), axis=1)
 
@@ -190,8 +196,8 @@ class evaluateModel(object):
 
 
 if __name__ == '__main__':
-    #path = "/home/scazlab/Desktop/speech_prediction_bags/ExperimentData/"
-    path = "/home/ros/ros_ws/src/hrc_speech_prediction/"
-    ev = evaluateModel(BernoulliNB, path)
+    args = parser.parse_args()
+
+    ev = evaluateModel(BernoulliNB, args.path)
     ev.test_all()
     # ev.test_on_one_participant()
