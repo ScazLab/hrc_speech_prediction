@@ -79,36 +79,23 @@ class evaluateModel(object):
 
         for t in trials:
             train_trials = [i for i in trials if i != t]
+            test_idx = [list(sesh[sesh.order.index(t)].ids)
+                        for sesh in self.data.data
+                        if t is in sesh.order]
+            train_idx = [i for i in range(0, self.data.n_samples)
+                         if i not in test_idx]
 
-            train_X = np.array([])
-            train_Y = np.array([])
+            test_X = self.m_data[test_idx, :]
+            train_X = self.m_data[train_idx, :]
 
-            test_X = np.array([])
+            test_Y = [list(sesh[sesh.order.index(t)].labels)
+                      for sesh in self.data.data
+                      if t is in sesh.order]
+            test_X = [list(sesh[sesh.order.index(i)].labels)
+                      for sesh in self.data.data
+                      for i in train_trials
+                      if i is in sesh.order]
 
-            for p in participants:
-                sesh = self.data.data[p]
-
-                if t in sesh.order:
-                    test_ids = sesh[sesh.order.index(t)].ids
-                    test_X = np.append(test_X,
-                                self.m_data[test_ids],
-                                axis=0)
-
-                    test_Y = np.append(test_Y,
-                                       sesh[sesh.order.index(t)].lables,
-                                       axis=0)
-
-                train_ids = []
-                for i in train_trials:
-                    if i in sesh.order:
-                        train_ids.append(sesh[sesh.order.index(i)].ids)
-                        train_Y = np.append(train_Y,
-                                            sesh[sesh.order.index(i)].labels,
-                                            axis=0)
-            
-                train_X = np.append(train_X,
-                                    self.m_data(train_ids),
-                                    axis=0)
 
             model = self.model().fit(train_X, train_Y)
             prediction = self.model.predict(test_X.reshape(1, -1))[0]
