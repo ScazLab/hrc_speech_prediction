@@ -181,13 +181,14 @@ class TrainData(object):
                                        for p in self.data], i)
         return self.data[self.participants[session_idx]].get_pair_from_id(i)
 
-    def all_trials(self):
-        for participant in self.data:
-            for x in self.data[participant]:
-                yield x
+    def all_sessions(self):
+        for part in self.data:
+            yield self.data[part]
 
-    def all_words(self):
-        raise NotImplementedError
+    def all_trials(self):
+        for session in self.all_sessions():
+            for trial in session:
+                yield trial
 
     def count_by_instructions(self):
         counts = {}
