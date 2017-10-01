@@ -2,8 +2,8 @@ import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 
-def get_bow_features(data):
-    vectorizer = TfidfVectorizer()
+def get_bow_features(data, use_idf=True):
+    vectorizer = TfidfVectorizer(use_idf=use_idf)
     X = vectorizer.fit_transform(data.utterances)
     return X, vectorizer
 
