@@ -1,29 +1,44 @@
 from sklearn.naive_bayes import GaussianNB
+from sklearn import metrics
+from sklearn.neighbors import KNeighborsClassifier
 import os
 import numpy as np
 from hrc_speech_prediction import (data, features)
 
 class evaluateModel(object):
-    def __init__(self, model, data_path):
+    def __init__(self, model, data_path, **kwargs):
         """
         Given a model and a path to the data, will run a number of different
         evaluations
         """
         self.data = data.TrainData.load(os.path.join(data_path,"train.json"))
-
         self.model = model
-        self.m_data, _  = features.get_context_features(self.data)
-        self.rows,self.columns = self.m_data.shape
+        self.args = kwargs
+        self.m_features, _ = features.get_context_features(self.data)
+        self.m_speech, _  = features.get_bow_features(self.data)
+        self.m_all = np.concatenate((self.m_features,
+                                     self.m_speech.toarray()),
+                                    axis=1)
 
 
-    def testOnOneParticipant(self):
+    def testOnOneParticipant(self,data_type="context"):
         """
         Leaves on participant out of training and then tests on them. Does
         this for each participant
         """
 
+        print("Running test on one participant...")
+
         participants = self.data.participants
+        results = {}
         score_avg = 0
+
+        if data_type is "context":
+            m_data = self.m_features
+        elif data_type is "speech":
+            m_data = self.m_speech.toarray()
+        else:
+            m_data = self.m_all
 
         # Get the indices for training and testing data
         for tst in participants:
@@ -32,93 +47,147 @@ class evaluateModel(object):
             # Get the labels for the testing participant
             test_Y = list(self.data.data[tst].labels)
 
-            test_idx = list(self.data.data[p].ids)
-            test_X = self.m_data[test_idx,:]
+            test_idx = list(self.data.data[tst].ids)
+            test_X = m_data[test_idx, :]
 
-            train_idx = [self.m_data.data[p].ids
-                         for p in participants if p != tst]
-            train_X = self.m_data[i for i in pi for pi in train_idx,:]
+            train_idx = [list(self.data.data[p].ids)
+                         for p in participants if not p == tst]
+            train_X = m_data[[i for pi in train_idx for i in pi], :]
+            train_Y = [list(self.data.labels)[i]
+                       for pi in train_idx
+                       for i in pi]
 
-            # for train in participants:
-            #     if train != tst:
-            #         train_ids.append(list(self.data.data[train].ids))
-            #         # Get the list of labels (i.e. actions) for a participant
-            #         train_Y = np.append(train_Y,
-            #                             list(self.data.data[tst].labels),
-            #                             axis=0)
-            #         print(train_X.shape)
-            #         train_X = np.vstack((train_X,
-            #                             self.m_data[train_ids,:]))
 
             model = self.model().fit(train_X, train_Y)
-            prediction = self.model.predict(test_X.reshape(1, -1))[0]
+            prediction = model.predict(test_X)
 
-            score = sklearn.metrics.accuracy_score(test_Y,
-                                                   prediction,
-                                                   normalize=True,
-                                                   sample_weight=None)
-            score_avg += score_avg
+            #.reshape(1, -1
+            score = metrics.accuracy_score(test_Y,
+                                           prediction,
+                                           normalize=True,
+                                           sample_weight=None)
+            score_avg += score
 
-            print("Testing on participant {}\n\t Accuracy is: {}\n"
-                  .format(tst, score))
-                    
+            results[tst] = score 
 
-        score_avg = score_avg / self.data.n_participants() * 100
-        print("On average {}\% of the labels were correctly predicted"
+        score_avg = score_avg / self.data.n_participants 
+
+        print("----------Testing on {} ---------".format(data))
+        print("{:<15} {:<10}".format('Pariticpant Tested', 'Accuracy'))
+        for k,v in results.iteritems():
+            print("{:<15} {:<10}".format(k,v))
+
+        print("Average {}\n"
               .format(score_avg))
-                    
 
-    def testOnOneTrial(self):
+    def testOnOneTrial(self, data_type="context"):
         """
         Excludes on trial from training (i.e. A, B, or C) and uses these
         excluded trials as tests
         """
-        trials = ["A", "B", "C"]
-        participants = self.data.data.keys()
+        print("Running test on one trial...")
+
+        trials = ['A', 'B', 'C']
+        participants = self.data.participants
         score_avg = 0
+
+        results = {}
+
+        if data_type is "context":
+            m_data = self.m_features
+        elif data_type is "speech":
+            m_data = self.m_speech.toarray()
+        else:
+            m_data = self.m_all
 
         for t in trials:
             train_trials = [i for i in trials if i != t]
-            test_idx = [list(sesh[sesh.order.index(t)].ids)
-                        for sesh in self.data.data
-                        if t is in sesh.order]
+
+            test_idx = [i
+                        for part in self.data.data
+                        for trial in self.data.data[part]
+                        for i in trial.ids
+                        if t == trial.instruction]
+
             train_idx = [i for i in range(0, self.data.n_samples)
                          if i not in test_idx]
 
-            test_X = self.m_data[test_idx, :]
-            train_X = self.m_data[train_idx, :]
+            test_X = m_data[test_idx, :]
+            train_X = m_data[train_idx, :]
 
-            test_Y = [list(sesh[sesh.order.index(t)].labels)
-                      for sesh in self.data.data
-                      if t is in sesh.order]
-            test_X = [list(sesh[sesh.order.index(i)].labels)
-                      for sesh in self.data.data
-                      for i in train_trials
-                      if i is in sesh.order]
+            train_Y = [list(self.data.labels)[i]
+                       for i in train_idx]
+            test_Y = [list(self.data.labels)[i]
+                       for i in test_idx]
 
 
-            model = self.model().fit(train_X, train_Y)
-            prediction = self.model.predict(test_X.reshape(1, -1))[0]
+            model = self.model(**self.args).fit(train_X, train_Y)
+            prediction = model.predict(test_X)
 
-            score = sklearn.metrics.accuracy_score(test_Y,
-                                                   prediction,
-                                                   normalize=True,
-                                                   sample_weight=None)
+            score = metrics.accuracy_score(test_Y,
+                                           prediction,
+                                           normalize=True,
+                                           sample_weight=None)
 
-            score_avg += score_avg
-
-            print("Testing on trial {} \n\t Accuracy is: {}\n"
-                  .format(t, score))
+            score_avg += score
+            results[t] = score
+            # print("Testing on trial {} \n\t Accuracy is: {}\n"
+            #       .format(t, score))
                     
 
-        score_avg = score_avg / 3.0 * 100
-        print("On average {}\% of the labels were correctly predicted"
+        print("----------testing on {} ---------".format(data))
+        print("{:<15} {:<10}".format('Trial Tested','Accuracy'))
+        for k,v in results.iteritems():
+            print("{:<15} {:<10}".format(k,v))
+
+        score_avg = score_avg / 3.0 
+        print("Average {}\n"
               .format(score_avg))
 
+    def cross_validation(self, data_type="context"):
+
+        """
+        Exclude one sample from training and test on it.
+        """
+        print("Running cross validation...")
+
+        results = np.empty((1,))
+
+        if data_type is "context":
+            m_data = self.m_features
+        elif data_type is "speech":
+            m_data = self.m_speech.toarray()
+        else:
+            m_data = self.m_all
+
+        for i in range (0, self.data.n_samples):
+            train_idx = [j for j in range(0, self.data.n_samples)
+                         if not j == i]
+
+            train_X = m_data[train_idx, :]
+            test_X = m_data[i, :]
+
+            train_Y = [list(self.data.labels)[j] for j in train_idx]
+            test_Y = [list(self.data.labels)[i]]
+
+            model = self.model(**self.args).fit(train_X, train_Y)
+            prediction = model.predict(test_X.reshape(1, -1))
+
+            score = metrics.accuracy_score(test_Y,
+                                           prediction,
+                                           normalize=True,
+                                           sample_weight=None)
+
+            results = np.append(results, score)
+
+        print("----------testing on {} ---------".format(data))
+        print("Avg: {}, std dev: {}\n".format(np.mean(results),
+                                              np.std(results)))
 
 
 if __name__ == '__main__':
-     path = "/home/scazlab/Desktop/speech_prediction_bags/ExperimentData/"
-     ev = evaluateModel(GaussianNB, path)
-     ev.testOnOneParticipant()
+     #path = "/home/scazlab/Desktop/speech_prediction_bags/ExperimentData/"
+    path = "/home/ros/ros_ws/src/hrc_speech_prediction/"
+    ev = evaluateModel(KNeighborsClassifier, path, n_neighbors=1)
+    ev.cross_validation(data_type="speech")
     # ev.testOnOneParticipant()
