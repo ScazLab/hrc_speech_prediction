@@ -1,10 +1,17 @@
 #!/usr/bin/env python
 
+import argparse
+
 import rospy
 import numpy as np
 from sklearn.externals import joblib
 
 from human_robot_collaboration.controller import BaseController
+
+parser = argparse.ArgumentParser("Run the autonomous controller")
+parser.add_argument('path', help='path to the model files', default=os.path.curdir)
+parser.add_argument('model', help='model to use', choices=['speech', 'both'],
+                    default='both')
 
 
 class DummyPredictor(object):
@@ -61,7 +68,7 @@ class SpeechPredictionController(BaseController):
     }
     BRING = 'get_pass'
 
-    def __init__(self, timer_path=None, debug=False):
+    def __init__(self, path, model='both', timer_path=None, debug=False):
         super(SpeechPredictionController, self).__init__(
             left=True, right=True, speech=False, listen=True, recovery=True)
         if debug:
@@ -69,10 +76,10 @@ class SpeechPredictionController(BaseController):
             self.vectorizer = self.model
             self.actions_in_context = self.model.obj
         else:
-            model_path = rospy.get_param('/speech_prediction/model_path')
+            model_path = os.path.join(path, "model_{}.pkl".format(model))
             self.model = joblib.load(model_path)
             # utterance vectorizer
-            vectorizer_path = rospy.get_param('/speech_prediction/vectorizer_path')
+            vectorizer_path = os.path.join(path, "vocabulary.pkl")
             self.vectorizer = joblib.load(vectorizer_path)
             # actions in order of context vector
             self.actions_in_context = self.model.actions
@@ -98,9 +105,10 @@ class SpeechPredictionController(BaseController):
     def _update_context(self, action):
         self.context[self.actions_in_context.index(action)] = 0
 
-
-# TODO: move to ros parameters
-timer_path = '/tmp/timer.json'
-controller = SpeechPredictionController(timer_path=timer_path, debug=True)
+args = parser.parse_args()
+controller = SpeechPredictionController(
+    path=args.path,
+    model=args.model,
+    timer_path=os.path.join(args.path, 'timer.json'))
 
 controller.run()
