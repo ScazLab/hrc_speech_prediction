@@ -26,6 +26,13 @@ class BaseModel(object):
         elif self.features == 'both':
             return np.concatenate([X_context, X_speech.toarray()], axis=1)
 
+    def _predict_proba(self, X_context, X_speech):
+        p = np.zeros((X_context.shape[0], self.n_actions))
+        p[:, self.model.classes_.tolist()] = self.model.predict_proba(
+                                              self._get_X(X_context,
+                                                          X_speech))
+        return p
+
     def fit(self, X_context, X_speech, labels):
         X = self._get_X(X_context, X_speech)
         self.model.fit(X, self._transform_labels(labels))
@@ -47,11 +54,7 @@ class BaseModel(object):
 
 class ContextFilterModel(BaseModel):
 
-    def _predict_proba(self, X_context, X_speech):
-        return self.model.predict_proba(self._get_X(X_context, X_speech))
-
     def predict(self, X_context, X_speech):
-        assert(self.model.classes_.tolist() == list(range(self.n_actions)))
         probas = self._predict_proba(X_context, X_speech)
         return [self.actions[i] for i in np.argmax(X_context * probas, axis=1)]
 

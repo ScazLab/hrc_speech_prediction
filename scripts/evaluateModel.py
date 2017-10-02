@@ -32,6 +32,8 @@ class EvaluateModel(object):
             features.get_context_features(self.data)
         self.X_speech, _ = features.get_bow_features(self.data, tfidf=tfidf,
                                                      n_grams=n_grams)
+        # Participants we will exclude from testing, but will train on
+        self.test_participants = ["15.ADT"]
 
     def get_Xs(self, indices):
         return self.X_context[indices, :], self.X_speech[indices, :]
@@ -98,12 +100,21 @@ class EvaluateModel(object):
 
     def new_participant(self, data_type="context"):
         pass
-        # print("Testing on fake new participant...")
-        # train_idx = [i for p in TRAIN_PARTICIPANTS
-        #              for i in self.data.data[p].ids]
-        # test_idx = [i for i in self.data.data[self.fake_participant].ids]
-        # score = self._evaluate_on(train_idx, test_idx, data_type)
-        # print("Score: {:.3f}".format(score))
+        print("Testing on pilot participant...")
+        for t in ["A", "D", "T"]:
+            print("\t trial: {}".format(t))
+            train_idx = [i for p in TRAIN_PARTICIPANTS
+                     for i in self.data.data[p].ids]
+            test_idx = [
+                i
+                for part in self.test_participants
+                for trial in self.data.data[part]
+                for i in trial.ids if t == trial.instruction
+            ]
+            # test_idx = [i for p in self.test_participants
+            #         for i in self.data.data[p].ids]
+            score = self._evaluate_on(train_idx, test_idx, data_type)
+            print("Score: {:.3f}".format(score))
 
     def test_all(self):
         for data_type in ["context", "speech", "both"]:
@@ -147,7 +158,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     ev = EvaluateModel(
-        PragmaticModel.model_generator(LogisticRegression),
+        ContextFilterModel.model_generator(LogisticRegression),
         args.path, n_grams=(1, 2))
     ev.test_all()
     # ev.test_on_one_participant()
