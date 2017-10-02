@@ -98,4 +98,4 @@ trials = [data.Trial('D', get_pairs(d_actions), 0),
 
 new_data = data.TrainData({'DE': data.Session(trials)})
 args = parser.parse_args()
-new_data.dump("/home/ros/ros_ws/src/hrc_speech_prediction/new_participant.json")
+new_data.dump(os.path.join(args.path, "new_participant.json"))
