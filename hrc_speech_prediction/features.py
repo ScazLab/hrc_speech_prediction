@@ -2,11 +2,12 @@ import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 
 
-def get_bow_features(data, tfidf=True, n_grams=(1,1)):
+def get_bow_features(data, tfidf=True, n_grams=(1,1), max_features=None):
     if tfidf:
         vectorizer = TfidfVectorizer()
     else:
-        vectorizer = CountVectorizer(ngram_range=n_grams)
+        vectorizer = CountVectorizer(ngram_range=n_grams,
+                                     max_features=max_features)
     X = vectorizer.fit_transform(data.utterances)
     return X, vectorizer
 
