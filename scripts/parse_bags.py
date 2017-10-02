@@ -14,6 +14,7 @@ parser.add_argument('path', help='path to the experiment files', default=os.path
 
 
 PARTICIPANTS = OrderedDict([
+    # Train data
     ('1.ABC',  ['B', 'C']),
     ('2.BCA',  ['B', 'C']),  # , 'A'], # for some reason last bag is not readable
     ('3.CAB',  ['C', 'A', 'B']),
@@ -26,6 +27,10 @@ PARTICIPANTS = OrderedDict([
     ('10.ABC', ['A', 'B', 'C']),
     ('11.BCA', ['A']),
     ('12.CAB', ['C', 'A', 'B']),
+    # Test experiment pilot (introducing free ordering and table task)
+    # ('13.F',   ['D', 'D']),       # not readable for some other reason
+    # ('14.ADT', ['A', 'D', 'T']),
+    ('15.ADT', ['A', 'D', 'T']),
 ])
 
 
