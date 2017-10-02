@@ -71,7 +71,9 @@ def rename_wrong_actions_in_first_sessions(data):
     def rename_pair(action, utterances):
         return rename(action), utterances
 
-    for participant in data.data:
+    # Participants with errors in labels
+    participants = [p for p in PARTICIPANTS if int(p.split('.')[0]) < 10]
+    for participant in participants:
         data.data[participant] = Session([
             Trial(t.instruction, [rename_pair(*pair) for pair in t.pairs],
                   t.initial_time)
