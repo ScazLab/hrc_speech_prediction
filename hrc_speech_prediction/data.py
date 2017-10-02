@@ -6,6 +6,16 @@ from collections import namedtuple, OrderedDict
 import numpy as np
 
 
+TRAIN_PARTICIPANTS = ['1.ABC', '2.BCA', '3.CAB', '4.ABC', '5.BCA',
+                      '6.CAB', '7.ABC', '8.BCA',
+                      '9.CAB', '10.ABC', '11.BCA', '12.CAB']
+ALL_ACTIONS = ["seat", "chair_back",
+               "leg_1", "leg_2", "leg_3", "leg_4", "leg_5", "leg_6", "leg_7",
+               "foot_1", "foot_2", "foot_3", "foot_4",
+               "front_1", "front_2", "front_3", "front_4",
+               "top_1", "top_2", "back_1", "back_2", "screwdriver_1"]
+
+
 # Note on terminology:
 # - one session is the full recording of a participant
 # - each session consists in several trials each corresponding to

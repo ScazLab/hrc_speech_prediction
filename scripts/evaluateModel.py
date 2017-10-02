@@ -7,7 +7,8 @@ from sklearn.naive_bayes import BernoulliNB, MultinomialNB
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 
-from hrc_speech_prediction import data, features
+from hrc_speech_prediction import features
+from hrc_speech_prediction.data import TrainData, TRAIN_PARTICIPANTS, ALL_ACTIONS
 from hrc_speech_prediction.models import (BaseModel, ContextFilterModel,
                                           PragmaticModel)
 
@@ -17,14 +18,14 @@ parser.add_argument('path', help='path to the experiment data',
                     default=os.path.curdir)
 
 
-class evaluateModel(object):
+class EvaluateModel(object):
 
     def __init__(self, model, data_path, n_grams=(1, 1), tfidf=False, **kwargs):
         """
         Given a model and a path to the data, will run a number of different
         evaluations
         """
-        self.data = data.TrainData.load(os.path.join(data_path, "train.json"))
+        self.data = TrainData.load(os.path.join(data_path, "train.json"))
         self.model = model
         self.args = kwargs
         self.X_context, self.context_actions = \
@@ -47,7 +48,7 @@ class evaluateModel(object):
         this for each participant
         """
         print("Running test on one participant...")
-        participants = self.data.participants
+        participants = TRAIN_PARTICIPANTS
         results = {}
         # Get the indices for training and testing data
         for tst in participants:
@@ -68,10 +69,12 @@ class evaluateModel(object):
         for tst in ['A', 'B', 'C']:
             test_idx = [
                 i
-                for part in self.data.data for trial in self.data.data[part]
+                for part in TRAIN_PARTICIPANTS
+                for trial in self.data.data[part]
                 for i in trial.ids if tst == trial.instruction
             ]
-            train_idx = [i for i in self.data.ids if i not in test_idx]
+            train_idx = [i for p in TRAIN_PARTICIPANTS
+                         for i in self.data.data[p].ids if i not in test_idx]
             results[tst] = self._evaluate_on(train_idx, test_idx, data_type)
         self._print_result_table(results, "Instruction")
 
@@ -80,16 +83,27 @@ class evaluateModel(object):
         10-fold cross validation
         """
         print("Running 10-fold cross validation...")
+        n_samples = sum([len(list(self.data.data[p].ids))
+                         for p in TRAIN_PARTICIPANTS])
         results = []
         step_size = self.data.n_samples / 10
-        for i in range(0, self.data.n_samples, step_size):
-            next_i = min(i + step_size, self.data.n_samples)
+        for i in range(0, n_samples, step_size):
+            next_i = min(i + step_size, n_samples)
             test_idx = [j for j in range(i, next_i)]
             train_idx = [
-                j for j in range(0, self.data.n_samples) if j not in test_idx
+                j for j in range(0, n_samples) if j not in test_idx
             ]
             results.append(self._evaluate_on(train_idx, test_idx, data_type))
         self._print_global_results(results)
+
+    def new_participant(self, data_type="context"):
+        pass
+        # print("Testing on fake new participant...")
+        # train_idx = [i for p in TRAIN_PARTICIPANTS
+        #              for i in self.data.data[p].ids]
+        # test_idx = [i for i in self.data.data[self.fake_participant].ids]
+        # score = self._evaluate_on(train_idx, test_idx, data_type)
+        # print("Score: {:.3f}".format(score))
 
     def test_all(self):
         for data_type in ["context", "speech", "both"]:
@@ -98,6 +112,7 @@ class evaluateModel(object):
             self.test_on_one_participant(data_type)
             self.test_on_one_trial(data_type)
             self.cross_validation(data_type)
+            self.new_participant(data_type)
 
     def _evaluate_on(self, train_idx, test_idx, data_type):
         self.check_indices(train_idx, test_idx)
@@ -131,8 +146,8 @@ class evaluateModel(object):
 if __name__ == '__main__':
     args = parser.parse_args()
 
-    ev = evaluateModel(
+    ev = EvaluateModel(
         PragmaticModel.model_generator(LogisticRegression),
-        args.path, n_grams=(2, 2))
+        args.path, n_grams=(1, 2))
     ev.test_all()
     # ev.test_on_one_participant()
