@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-import os
-
 import rospy
 import numpy as np
 from sklearn.externals import joblib
@@ -23,8 +21,9 @@ class DummyPredictor(object):
         return np.array([[w in u.lower() for w in self.words]
                          for u in utterances])
 
-    def predict(self, X):
+    def predict(self, Xs, Xc):
         # return an object that is in context and which name is in utterance
+        X = np.concatenate(Xs, Xc, axis=1)
         intersection = X[:, :self.n_obj] * X[:, self.n_obj:]
         chosen = -np.ones((X.shape[0]), dtype='int8')
         ii, jj = intersection.nonzero()
@@ -76,8 +75,7 @@ class SpeechPredictionController(BaseController):
             vectorizer_path = rospy.get_param('/speech_prediction/vectorizer_path')
             self.vectorizer = joblib.load(vectorizer_path)
             # actions in order of context vector
-            context_state_path = rospy.get_param('/speech_prediction/context_path')
-            self.actions_in_context = joblib.load(context_state_path)
+            self.actions_in_context = self.model.actions
 
     def _run(self):
         rospy.loginfo('Starting autonomous control')
@@ -89,13 +87,13 @@ class SpeechPredictionController(BaseController):
                 utterance = self.listen_sub.wait_for_msg(timeout=60.)
                 rospy.loginfo('found: {}'.format(utterance))
             x_u = self.vectorizer.transform([utterance])
-            action = self.model.predict(np.hstack([x_u, self.context[None, :]]))[0]
+            action = self.model.predict(x_u, self.context[None, :])[0]
             rospy.loginfo("Taking action {} for \"{}\"".format(action, utterance))
             self.take_action(action)
 
     def take_action(self, action):
         side, obj = self.OBJECT_DICT[action]
-        self._action(side, (self.BRING, [obj]), {'wait': True})
+        return self._action(side, (self.BRING, [obj]), {'wait': True})
 
     def _update_context(self, action):
         self.context[self.actions_in_context.index(action)] = 0
