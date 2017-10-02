@@ -13,8 +13,8 @@ def get_bow_features(data, tfidf=True, n_grams=(1,1), max_features=None):
 
 
 
-def get_context_features(data):
-    all_labels = list(set(data.labels))
+def get_context_features(data, actions=None):
+    all_labels = list(set(data.labels)) if actions is None else actions
     X = np.ones((data.n_samples, len(all_labels)), dtype='bool')
     for p in data.data:
         for trial in data.data[p]:
