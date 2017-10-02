@@ -8,7 +8,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 
 from hrc_speech_prediction import data, features
-from hrc_speech_prediction.models import BaseModel
+from hrc_speech_prediction.models import (BaseModel, ContextFilterModel,
+                                          PragmaticModel)
 
 
 parser = argparse.ArgumentParser("Train and evaluate classifier")
@@ -130,7 +131,8 @@ class evaluateModel(object):
 if __name__ == '__main__':
     args = parser.parse_args()
 
-    ev = evaluateModel(BaseModel.model_generator(LogisticRegression),
-                       args.path, n_grams=(2, 2))
+    ev = evaluateModel(
+        PragmaticModel.model_generator(LogisticRegression),
+        args.path, n_grams=(2, 2))
     ev.test_all()
     # ev.test_on_one_participant()

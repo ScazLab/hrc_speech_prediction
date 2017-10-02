@@ -1,4 +1,5 @@
 import numpy as np
+from sklearn.preprocessing import normalize
 
 
 class BaseModel(object):
@@ -9,8 +10,15 @@ class BaseModel(object):
         self.actions_idx = {a: i for i, a in enumerate(context_actions)}
         self.features = features
 
+    @property
+    def n_actions(self):
+        return len(self.actions)
+
+    def _transform_labels(self, labels):
+        return [self.actions_idx[l] for l in labels]
+
     def _get_X(self, X_context, X_speech):
-        assert(X_context.shape[1] == len(self.actions))
+        assert(X_context.shape[1] == self.n_actions)
         if self.features == 'context':
             return X_context
         elif self.features == 'speech':
@@ -20,7 +28,7 @@ class BaseModel(object):
 
     def fit(self, X_context, X_speech, labels):
         X = self._get_X(X_context, X_speech)
-        self.model.fit(X, [self.actions_idx[l] for l in labels])
+        self.model.fit(X, self._transform_labels(labels))
         return self
 
     def predict(self, X_context, X_speech):
@@ -35,3 +43,40 @@ class BaseModel(object):
                        **kwargs)
 
         return f
+
+
+class ContextFilterModel(BaseModel):
+
+    def _predict_proba(self, X_context, X_speech):
+        return self.model.predict_proba(self._get_X(X_context, X_speech))
+
+    def predict(self, X_context, X_speech):
+        assert(self.model.classes_.tolist() == list(range(self.n_actions)))
+        probas = self._predict_proba(X_context, X_speech)
+        return [self.actions[i] for i in np.argmax(X_context * probas, axis=1)]
+
+
+class PragmaticModel(ContextFilterModel):
+
+    def __init__(self, predictor, context_actions, features="both",
+                 alpha=1., beta=3.):
+        super(PragmaticModel, self).__init__(predictor, context_actions,
+                                             features=features)
+        self.alpha = alpha
+        self.beta = beta
+        self._p = None
+        self._q = None
+
+    def fit(self, X_context, X_speech, labels):
+        super(PragmaticModel, self).fit(X_context, X_speech, labels)
+        self._p = X_context.sum(axis=0) + self.alpha
+        self._p /= self._p.sum()
+        probas = super(PragmaticModel, self)._predict_proba(X_context, X_speech)
+        self._q = np.power(probas, self.beta).sum(axis=0) + 1.e-8
+        return self
+
+    def _predict_proba(self, X_context, X_speech):
+        probas = super(PragmaticModel, self)._predict_proba(X_context, X_speech)
+        l_probas = (np.power(probas, self.beta) *
+                    self._p[None, :] / self._q[None, :])
+        return normalize(l_probas, axis=1)
