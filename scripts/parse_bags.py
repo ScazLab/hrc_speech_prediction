@@ -57,8 +57,9 @@ def rename_wrong_actions_in_first_sessions(data):
     """front_2 | foot_5 -> front_3"""
 
     def rename(action):
-        if action in ('front_2', 'foot_5'):
-            return 'front_3'
+        l, ts, te = action
+        if l in ('front_2', 'foot_5'):
+            return ('front_3', ts, te)
         else:
             return action
 
