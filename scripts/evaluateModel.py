@@ -102,10 +102,9 @@ class EvaluateModel(object):
 
     def new_participant(self, data_type="context"):
         print("Testing on pilot participant...")
-        results = []
+        results = {}
         trials = ["A", "D", "T"]
         for t in trials:
-            print("\t trial: {}".format(t))
             train_idx = [i for p in TRAIN_PARTICIPANTS
                          for i in self.data.data[p].ids]
             test_idx = [
@@ -114,8 +113,8 @@ class EvaluateModel(object):
                 for trial in self.data.data[part]
                 for i in trial.ids if t == trial.instruction
             ]
-            results.append(self._evaluate_on(train_idx, test_idx, data_type))
-        self._print_result_table(results, trials)
+            results[t] = self._evaluate_on(train_idx, test_idx, data_type)
+        self._print_result_table(results, 'Instruction')
 
     def test_all(self):
         for data_type in ["context", "speech", "both"]:
@@ -144,7 +143,7 @@ class EvaluateModel(object):
 
     def _print_result_table(self, results, key_title):
         w = max(len(key_title), len("Accuracy"))
-        print("{:<{w}}: {} ".format("Participant", " ".join(
+        print("{:<{w}}: {} ".format(key_title, " ".join(
             ["{:^7}".format(k) for k in results.keys()]), w=w))
         print("{:<{w}}: {} ".format("Accuracy", " ".join(
             ["{:^7.2f}".format(v) for v in results.values()]), w=w))
