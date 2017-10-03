@@ -15,7 +15,7 @@ from hrc_speech_prediction.models import ContextFilterModel
 
 TFIDF = False
 N_GRAMS = (1, 2)
-ADD_LAST_ACTION = True
+ADD_LAST_ACTION = False
 
 parser = argparse.ArgumentParser("Train and evaluate classifier")
 parser.add_argument('path', help='path to the experiment data',
