@@ -29,10 +29,10 @@ class DummyPredictor(object):
         return np.array([[w in u.lower() for w in self.words]
                          for u in utterances])
 
-    def predict(self, Xc, Xs):
+    def predict(self, Xc, Xs, exclude=[]):
         # return an object that is in context and which name is in utterance
-        X = np.concatenate(Xs, Xc, axis=1)
-        intersection = X[:, :self.n_obj] * X[:, self.n_obj:]
+        intersection = Xs * Xc
+        intersection[:, [self.obj.index(a) for a in exclude]] = 0
         chosen = -np.ones((X.shape[0]), dtype='int8')
         ii, jj = intersection.nonzero()
         chosen[ii] = jj
@@ -88,6 +88,7 @@ class SpeechPredictionController(BaseController):
     def _run(self):
         rospy.loginfo('Starting autonomous control')
         self.context = np.ones((len(self.actions_in_context)), dtype='bool')
+        self.wrong_actions = []
         while not self.finished:
             utterance = None
             while not utterance:
@@ -96,20 +97,48 @@ class SpeechPredictionController(BaseController):
                 if utterance is None or len(utterance) < 5:
                     rospy.loginfo('Skipping utterance (too short): {}'.format(utterance))
             x_u = self.vectorizer.transform([utterance])
-            action = self.model.predict(self.context[None, :], x_u)[0]
+            action = self.model.predict(self.context[None, :], x_u,
+                                        exclude=self.wrong_actions)[0]
             rospy.loginfo("Taking action {} for \"{}\"".format(action, utterance))
             rospy.logwarn("Service returned {}".format(self.take_action(action)))
             self._update_context(action)
 
     def take_action(self, action):
         side, obj = self.OBJECT_DICT[action]
-        return self._action(side, (self.BRING, [obj]), {'wait': True})
+        for _ in range(3):  # Try four time to take action
+            r = self._action(side, (self.BRING, [obj]), {'wait': True})
+            if r.success:
+                break
+            elif r.response == r.ACT_FAILED:
+                rospy.loginfo("Marking {} as a wrong answer (adding to: {})".format(
+                    action, map(self._short_action, self.wrong_actions)))
+                self.wrong_actions.append(action)
+                break
+            elif r.response in (r.NO_IR_SENSOR, r.ACT_NOT_IMPL):
+                rospy.logerr(r.response)
+                self._stop()
+            else:
+                # Otherwise retry action
+                rospy.logwarn('Retrying failed action {}. [{}]'.format(
+                    action, r.response))
+        # IMPORTANT: Assuming action success after three failures
+        self.wrong_actions = []
+
 
     def _update_context(self, action):
         self.context[self.actions_in_context.index(action)] = 0
-        rospy.loginfo('New context: {}'.format([
-            self.actions_in_context[i][j] for i in self.context.nonzero()[0]
-            for j in [0, 1, -1]]))  # Printing 2 first and last char
+        rospy.loginfo('New context: {}'.format(" ".join([
+            self._short_action(self.actions_in_context[i])
+            for i in self.context.nonzero()[0]])))
+
+    @staticmethod
+    def _short_action(a):
+        # Printing 2 first and last char
+        if a == 'seat':
+            return a
+        else:
+            return ''.join([a[:2], a[-1]])
+
 
 args = parser.parse_args()
 controller = SpeechPredictionController(

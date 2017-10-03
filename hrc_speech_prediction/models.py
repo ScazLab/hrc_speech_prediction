@@ -38,7 +38,9 @@ class BaseModel(object):
         self.model.fit(X, self._transform_labels(labels))
         return self
 
-    def predict(self, X_context, X_speech):
+    def predict(self, X_context, X_speech, exclude=[]):
+        if exclude:
+            raise NotImplementedError  # TODO
         return [self.actions[i]
                 for i in self.model.predict(self._get_X(X_context, X_speech))]
 
@@ -54,9 +56,11 @@ class BaseModel(object):
 
 class ContextFilterModel(BaseModel):
 
-    def predict(self, X_context, X_speech):
+    def predict(self, X_context, X_speech, exclude=[]):
+        excl = np.ones(X_context.shape)
+        excl[:, [self.actions_idx[a] for a in exclude]] = 0
         probas = self._predict_proba(X_context, X_speech)
-        return [self.actions[i] for i in np.argmax(X_context * probas, axis=1)]
+        return [self.actions[i] for i in np.argmax(X_context * excl * probas, axis=1)]
 
 
 class PragmaticModel(ContextFilterModel):
