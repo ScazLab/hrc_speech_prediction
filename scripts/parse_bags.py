@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import json
 import argparse
 from collections import OrderedDict
 
@@ -88,9 +89,25 @@ def remove_initial_utterance_in_12_3(data):
     session[2].pairs[0][1].pop(0)
 
 
+def _pairs_to_trial(pairs, name):
+    return Trial(name,
+                 [((a, 0., 0.), [(u, 0., 0.) for u in uu]) for a, uu in pairs],
+                 0.)
+
+
+def add_missing_trials_to_11(data):
+    P11 = '11.BCA'
+    with open(os.path.join(os.path.dirname(__file__), 'P11.json')) as f:
+        d = json.load(f)
+    session = data.data[P11]
+    session.insert(0, _pairs_to_trial(d['B'], 'B'))
+    session.insert(1, _pairs_to_trial(d['C'], 'C'))
+
+
 CLEAN_FUNCTIONS = [
     merge_duplicate_in_8,
     rename_wrong_actions_in_first_sessions,
+    add_missing_trials_to_11,
 ]
 
 
