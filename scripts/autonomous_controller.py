@@ -127,7 +127,7 @@ class SpeechPredictionController(BaseController):
                 message = "Marking {} as a wrong answer (adding to: [{}])".format(
                     action, ", ".join(map(self._short_action, self.wrong_actions)))
                 rospy.loginfo(message)
-                timer.log(message)
+                self.timer.log(message)
                 with self._ctxt_lock:
                     self.wrong_actions.append(action)
                 return False
