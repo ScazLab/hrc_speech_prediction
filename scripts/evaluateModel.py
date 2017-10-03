@@ -99,22 +99,21 @@ class EvaluateModel(object):
         self._print_global_results(results)
 
     def new_participant(self, data_type="context"):
-        pass
         print("Testing on pilot participant...")
-        for t in ["A", "D", "T"]:
+        results = []
+        trials = ["A", "D", "T"]
+        for t in trials:
             print("\t trial: {}".format(t))
             train_idx = [i for p in TRAIN_PARTICIPANTS
-                     for i in self.data.data[p].ids]
+                         for i in self.data.data[p].ids]
             test_idx = [
                 i
                 for part in self.test_participants
                 for trial in self.data.data[part]
                 for i in trial.ids if t == trial.instruction
             ]
-            # test_idx = [i for p in self.test_participants
-            #         for i in self.data.data[p].ids]
-            score = self._evaluate_on(train_idx, test_idx, data_type)
-            print("Score: {:.3f}".format(score))
+            results.append(self._evaluate_on(train_idx, test_idx, data_type))
+        self._print_result_table(results, trials)
 
     def test_all(self):
         for data_type in ["context", "speech", "both"]:
