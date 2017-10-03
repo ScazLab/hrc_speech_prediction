@@ -44,8 +44,8 @@ class DummyPredictor(object):
 class SpeechPredictionController(BaseController):
 
     OBJECT_DICT = {
-        "seat":          (BaseController.LEFT, 200),
-        "chair_back":    (BaseController.LEFT, 198),
+        "seat":          (BaseController.LEFT, 198),
+        "chair_back":    (BaseController.LEFT, 201),
         "leg_1":         (BaseController.LEFT, 150),
         "leg_2":         (BaseController.LEFT, 151),
         "leg_3":         (BaseController.LEFT, 152),
