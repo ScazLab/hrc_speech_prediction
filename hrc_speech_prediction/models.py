@@ -33,9 +33,24 @@ class BaseModel(object):
                                                           X_speech))
         return p
 
-    def fit(self, X_context, X_speech, labels):
-        X = self._get_X(X_context, X_speech)
-        self.model.fit(X, self._transform_labels(labels))
+    def fit(self, X_context, X_speech, labels, lam=1):
+        # Shuffles the columns of X_context 
+        if self.features == 'both':
+            X_fake_context = X_context.copy()
+            np.random.shuffle(X_fake_context.T)
+
+            X_new_context = np.vstack((X_context, X_fake_context))
+            X_new_speech = np.vstack((X_speech, X_speech))
+            X = self._get_X(X_new_context, X_new_speech)
+
+            s_weights = np.array([lam if i < self.n_actions else 1.0
+                              for i in range(0, X.shape[1])])
+            self.model.fit(X,
+                       self._transform_labels(labels),
+                       sample_weight=s_weights)
+        else:
+            X = self._get_X(X_context, X_speech)
+            self.model.fit(X, self._transform_labels(labels))
         return self
 
     def predict(self, X_context, X_speech, exclude=[]):

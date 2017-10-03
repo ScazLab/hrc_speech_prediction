@@ -20,7 +20,8 @@ parser.add_argument('path', help='path to the experiment data',
 
 class EvaluateModel(object):
 
-    def __init__(self, model, data_path, n_grams=(1, 1), tfidf=False, **kwargs):
+    def __init__(self, model, data_path, lam=1,
+                 n_grams=(1, 1), tfidf=False, **kwargs):
         """
         Given a model and a path to the data, will run a number of different
         evaluations
@@ -34,6 +35,7 @@ class EvaluateModel(object):
                                                      n_grams=n_grams)
         # Participants we will exclude from testing, but will train on
         self.test_participants = ["15.ADT"]
+        self.lam = lam
 
     def get_Xs(self, indices):
         return self.X_context[indices, :], self.X_speech[indices, :]
@@ -134,7 +136,7 @@ class EvaluateModel(object):
         test_Y = self.get_labels(test_idx)
         # Train
         model = self.model(self.context_actions, features=data_type).fit(
-            train_Xs[0], train_Xs[1], train_Y)
+            train_Xs[0], train_Xs[1], train_Y, lam=self.lam)
         # Evaluate
         prediction = model.predict(*test_Xs)
         return metrics.accuracy_score(
@@ -158,6 +160,6 @@ if __name__ == '__main__':
 
     ev = EvaluateModel(
         ContextFilterModel.model_generator(LogisticRegression),
-        args.path, n_grams=(1, 2))
+        args.path,lam=0.5,  n_grams=(1, 2))
     ev.test_all()
     # ev.test_on_one_participant()
