@@ -15,6 +15,7 @@ parser = argparse.ArgumentParser("Run the autonomous controller")
 parser.add_argument('path', help='path to the model files', default=os.path.curdir)
 parser.add_argument('-m', '--model', help='model to use', choices=['speech', 'both'],
                     default='both')
+parser.add_argument('-p', '--participant', help='id of participant', default='test')
 
 
 class DummyPredictor(object):
@@ -70,11 +71,13 @@ class SpeechPredictionController(BaseController):
         "front_4":       (BaseController.RIGHT, 23),
     }
     BRING = 'get_pass'
-    WEB_TOPIC = '/web_interface/log'
+    WEB_TOPIC = '/web_interface/pressed'
+    MIN_WORDS = 4
 
-    def __init__(self, path, model='both', timer_path=None, debug=False):
+    def __init__(self, path, model='both', timer_path=None, debug=False, **kwargs):
         super(SpeechPredictionController, self).__init__(
-            left=True, right=True, speech=False, listen=True, recovery=True)
+            left=True, right=True, speech=False, listen=True, recovery=True,
+            timer_path=os.path.join(path, timer_path), **kwargs)
         if debug:
             self.model = DummyPredictor(list(self.OBJECT_DICT.keys()))
             self.vectorizer = self.model
@@ -88,28 +91,30 @@ class SpeechPredictionController(BaseController):
             # actions in order of context vector
             self.actions_in_context = self.model.actions
         # Subscriber to web topic to update context on repeated fail
-        rospy.Subscriber(self.WEB_TOPIC, String, self._update_context)
+        rospy.Subscriber(self.WEB_TOPIC, String, self._web_interface_cb)
         self._ctxt_lock = Lock()
         self.context = np.ones((len(self.actions_in_context)), dtype='bool')
 
     def _run(self):
+        self.timer.start()
         rospy.loginfo('Starting autonomous control')
         self._reset_wrong_actions()
+        utterance = None
         while not self.finished:
-            utterance = None
-            while not utterance:
-                rospy.loginfo('Waiting for utterance')
-                utterance = self.listen_sub.wait_for_msg(timeout=60.)
-                if utterance is None or len(utterance.split()) < 5:
-                    rospy.loginfo('Skipping utterance (too short): {}'.format(utterance))
-                else:
-                    x_u = self.vectorizer.transform([utterance])
-                    with self._ctxt_lock:
-                        ctxt = self.context.copy()
-                        action = self.model.predict(ctxt[None, :], x_u,
-                                                    exclude=self.wrong_actions)[0]
-                    rospy.loginfo("Taking action {} for \"{}\"".format(action, utterance))
-                    self.take_action(action)
+            rospy.loginfo('Waiting for utterance')
+            utterance = self.listen_sub.wait_for_msg(timeout=20.)
+            if utterance is None or len(utterance.split()) < self.MIN_WORDS:
+                rospy.loginfo('Skipping utterance (too short): {}'.format(utterance))
+            else:
+                x_u = self.vectorizer.transform([utterance])
+                with self._ctxt_lock:
+                    ctxt = self.context.copy()
+                    action = self.model.predict(ctxt[None, :], x_u,
+                                                exclude=self.wrong_actions)[0]
+                message = "Taking action {} for \"{}\"".format(action, utterance)
+                rospy.loginfo(message)
+                self.timer.log(message)
+                if self.take_action(action):
                     self._update_context(action)
 
     def take_action(self, action):
@@ -117,10 +122,12 @@ class SpeechPredictionController(BaseController):
         for _ in range(3):  # Try four time to take action
             r = self._action(side, (self.BRING, [obj]), {'wait': True})
             if r.success:
-                break
+                return True
             elif r.response == r.ACT_FAILED:
-                rospy.loginfo("Marking {} as a wrong answer (adding to: [{}])".format(
-                    action, ", ".join(map(self._short_action, self.wrong_actions))))
+                message = "Marking {} as a wrong answer (adding to: [{}])".format(
+                    action, ", ".join(map(self._short_action, self.wrong_actions)))
+                rospy.loginfo(message)
+                timer.log(message)
                 with self._ctxt_lock:
                     self.wrong_actions.append(action)
                 return False
@@ -131,20 +138,27 @@ class SpeechPredictionController(BaseController):
                 # Otherwise retry action
                 rospy.logwarn('Retrying failed action {}. [{}]'.format(
                     action, r.response))
-        # IMPORTANT: Assuming action success after three failures
-        return True
+        return False
 
     def _reset_wrong_actions(self):
         with self._ctxt_lock:
             self.wrong_actions = []
 
+    def _web_interface_cb(self, message):
+        if message.data in self.actions_in_context:
+            self._update_context(message.data)
+        elif message.data == 'STOP experiment':
+            self._stop()
+
     def _update_context(self, action):
-        if action in self.actions_in_context:
-            with self.ctxt_lock:
-                self.context[self.actions_in_context.index(action)] = 0
-                rospy.loginfo('New context: {}'.format(" ".join([
-                    self._short_action(self.actions_in_context[i])
-                    for i in self.context.nonzero()[0]])))
+        with self._ctxt_lock:
+            self.context[self.actions_in_context.index(action)] = 0
+            message = 'New context: {}'.format(" ".join([
+                self._short_action(self.actions_in_context[i])
+                for i in self.context.nonzero()[0]]))
+        self.timer.log(message)
+        rospy.loginfo(message)
+        self._reset_wrong_actions()
 
     @staticmethod
     def _short_action(a):
@@ -159,6 +173,7 @@ args = parser.parse_args()
 controller = SpeechPredictionController(
     path=args.path,
     model=args.model,
-    timer_path=os.path.join(args.path, 'timer.json'))
+    timer_path='timer-{}.json'.format(args.participant)
+)
 
 controller.run()

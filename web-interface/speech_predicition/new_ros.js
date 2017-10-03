@@ -53,7 +53,7 @@ var logTopic = new ROSLIB.Topic({
 // First, we create a Topic object with details of the topic's name and message type.
 var elemPressed = new ROSLIB.Topic({
   ros : ros,
-  name : '/web_interface',
+  name : '/web_interface/pressed',
   messageType : 'std_msgs/String'
 });
 
