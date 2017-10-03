@@ -94,13 +94,13 @@ class SpeechPredictionController(BaseController):
             while not utterance:
                 rospy.loginfo('Waiting for utterance')
                 utterance = self.listen_sub.wait_for_msg(timeout=60.)
-                if utterance is None or len(utterance) < 5:
+                if utterance is None or len(utterance.split()) < 5:
                     rospy.loginfo('Skipping utterance (too short): {}'.format(utterance))
             x_u = self.vectorizer.transform([utterance])
             action = self.model.predict(self.context[None, :], x_u,
                                         exclude=self.wrong_actions)[0]
             rospy.loginfo("Taking action {} for \"{}\"".format(action, utterance))
-            rospy.logwarn("Service returned {}".format(self.take_action(action)))
+            self.take_action(action)
             self._update_context(action)
 
     def take_action(self, action):
@@ -110,10 +110,10 @@ class SpeechPredictionController(BaseController):
             if r.success:
                 break
             elif r.response == r.ACT_FAILED:
-                rospy.loginfo("Marking {} as a wrong answer (adding to: {})".format(
-                    action, map(self._short_action, self.wrong_actions)))
+                rospy.loginfo("Marking {} as a wrong answer (adding to: [{}])".format(
+                    action, ", ".join(map(self._short_action, self.wrong_actions))))
                 self.wrong_actions.append(action)
-                break
+                return False
             elif r.response in (r.NO_IR_SENSOR, r.ACT_NOT_IMPL):
                 rospy.logerr(r.response)
                 self._stop()
@@ -123,6 +123,7 @@ class SpeechPredictionController(BaseController):
                     action, r.response))
         # IMPORTANT: Assuming action success after three failures
         self.wrong_actions = []
+        return True
 
 
     def _update_context(self, action):
