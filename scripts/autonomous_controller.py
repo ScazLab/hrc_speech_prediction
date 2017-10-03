@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os
 import argparse
 
 import rospy
@@ -10,7 +11,7 @@ from human_robot_collaboration.controller import BaseController
 
 parser = argparse.ArgumentParser("Run the autonomous controller")
 parser.add_argument('path', help='path to the model files', default=os.path.curdir)
-parser.add_argument('model', help='model to use', choices=['speech', 'both'],
+parser.add_argument('-m', '--model', help='model to use', choices=['speech', 'both'],
                     default='both')
 
 
@@ -28,7 +29,7 @@ class DummyPredictor(object):
         return np.array([[w in u.lower() for w in self.words]
                          for u in utterances])
 
-    def predict(self, Xs, Xc):
+    def predict(self, Xc, Xs):
         # return an object that is in context and which name is in utterance
         X = np.concatenate(Xs, Xc, axis=1)
         intersection = X[:, :self.n_obj] * X[:, self.n_obj:]
@@ -92,11 +93,13 @@ class SpeechPredictionController(BaseController):
             while not utterance:
                 rospy.loginfo('Waiting for utterance')
                 utterance = self.listen_sub.wait_for_msg(timeout=60.)
-                rospy.loginfo('found: {}'.format(utterance))
+                if utterance is None or len(utterance) < 5:
+                    rospy.loginfo('Skipping utterance (too short): {}'.format(utterance))
             x_u = self.vectorizer.transform([utterance])
-            action = self.model.predict(x_u, self.context[None, :])[0]
+            action = self.model.predict(self.context[None, :], x_u)[0]
             rospy.loginfo("Taking action {} for \"{}\"".format(action, utterance))
-            self.take_action(action)
+            rospy.logwarn("Service returned {}".format(self.take_action(action)))
+            self._update_context(action)
 
     def take_action(self, action):
         side, obj = self.OBJECT_DICT[action]
@@ -104,6 +107,9 @@ class SpeechPredictionController(BaseController):
 
     def _update_context(self, action):
         self.context[self.actions_in_context.index(action)] = 0
+        rospy.loginfo('New context: {}'.format([
+            self.actions_in_context[i][j] for i in self.context.nonzero()[0]
+            for j in [0, 1, -1]]))  # Printing 2 first and last char
 
 args = parser.parse_args()
 controller = SpeechPredictionController(
