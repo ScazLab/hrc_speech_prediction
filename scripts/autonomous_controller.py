@@ -2,10 +2,12 @@
 
 import os
 import argparse
+from threading import Lock
 
-import rospy
 import numpy as np
 from sklearn.externals import joblib
+import rospy
+from std_msgs.msg import String
 
 from human_robot_collaboration.controller import BaseController
 
@@ -68,6 +70,7 @@ class SpeechPredictionController(BaseController):
         "front_4":       (BaseController.RIGHT, 23),
     }
     BRING = 'get_pass'
+    WEB_TOPIC = '/web_interface/log'
 
     def __init__(self, path, model='both', timer_path=None, debug=False):
         super(SpeechPredictionController, self).__init__(
@@ -84,11 +87,14 @@ class SpeechPredictionController(BaseController):
             self.vectorizer = joblib.load(vectorizer_path)
             # actions in order of context vector
             self.actions_in_context = self.model.actions
+        # Subscriber to web topic to update context on repeated fail
+        rospy.Subscriber(self.WEB_TOPIC, String, self._update_context)
+        self._ctxt_lock = Lock()
+        self.context = np.ones((len(self.actions_in_context)), dtype='bool')
 
     def _run(self):
         rospy.loginfo('Starting autonomous control')
-        self.context = np.ones((len(self.actions_in_context)), dtype='bool')
-        self.wrong_actions = []
+        self._reset_wrong_actions()
         while not self.finished:
             utterance = None
             while not utterance:
@@ -96,12 +102,15 @@ class SpeechPredictionController(BaseController):
                 utterance = self.listen_sub.wait_for_msg(timeout=60.)
                 if utterance is None or len(utterance.split()) < 5:
                     rospy.loginfo('Skipping utterance (too short): {}'.format(utterance))
-            x_u = self.vectorizer.transform([utterance])
-            action = self.model.predict(self.context[None, :], x_u,
-                                        exclude=self.wrong_actions)[0]
-            rospy.loginfo("Taking action {} for \"{}\"".format(action, utterance))
-            self.take_action(action)
-            self._update_context(action)
+                else:
+                    x_u = self.vectorizer.transform([utterance])
+                    with self._ctxt_lock:
+                        ctxt = self.context.copy()
+                        action = self.model.predict(ctxt[None, :], x_u,
+                                                    exclude=self.wrong_actions)[0]
+                    rospy.loginfo("Taking action {} for \"{}\"".format(action, utterance))
+                    self.take_action(action)
+                    self._update_context(action)
 
     def take_action(self, action):
         side, obj = self.OBJECT_DICT[action]
@@ -112,7 +121,8 @@ class SpeechPredictionController(BaseController):
             elif r.response == r.ACT_FAILED:
                 rospy.loginfo("Marking {} as a wrong answer (adding to: [{}])".format(
                     action, ", ".join(map(self._short_action, self.wrong_actions))))
-                self.wrong_actions.append(action)
+                with self._ctxt_lock:
+                    self.wrong_actions.append(action)
                 return False
             elif r.response in (r.NO_IR_SENSOR, r.ACT_NOT_IMPL):
                 rospy.logerr(r.response)
@@ -122,15 +132,19 @@ class SpeechPredictionController(BaseController):
                 rospy.logwarn('Retrying failed action {}. [{}]'.format(
                     action, r.response))
         # IMPORTANT: Assuming action success after three failures
-        self.wrong_actions = []
         return True
 
+    def _reset_wrong_actions(self):
+        with self._ctxt_lock:
+            self.wrong_actions = []
 
     def _update_context(self, action):
-        self.context[self.actions_in_context.index(action)] = 0
-        rospy.loginfo('New context: {}'.format(" ".join([
-            self._short_action(self.actions_in_context[i])
-            for i in self.context.nonzero()[0]])))
+        if action in self.actions_in_context:
+            with self.ctxt_lock:
+                self.context[self.actions_in_context.index(action)] = 0
+                rospy.loginfo('New context: {}'.format(" ".join([
+                    self._short_action(self.actions_in_context[i])
+                    for i in self.context.nonzero()[0]])))
 
     @staticmethod
     def _short_action(a):
