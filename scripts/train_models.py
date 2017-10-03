@@ -43,7 +43,8 @@ labels = [list(data.labels)[i] for i in train_ids]
 
 for features in ('speech', 'both'):
     model = ContextFilterModel(
-        LogisticRegression(), ALL_ACTIONS, features=features
+        LogisticRegression(), ALL_ACTIONS, features=features,
+        randomize_context=.25,
     ).fit(X_context, X_speech, labels)
     model_path = os.path.join(args.path, 'model_{}.pkl'.format(features))
     with open(model_path, "wb") as m:

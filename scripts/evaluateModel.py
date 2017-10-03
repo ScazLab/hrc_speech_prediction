@@ -134,8 +134,9 @@ class EvaluateModel(object):
         test_Xs = self.get_Xs(test_idx)
         test_Y = self.get_labels(test_idx)
         # Train
-        model = self.model(self.context_actions, features=data_type).fit(
-            train_Xs[0], train_Xs[1], train_Y, lam=self.lam)
+        model = self.model(self.context_actions, features=data_type,
+                           randomize_context=.25,
+                           ).fit(train_Xs[0], train_Xs[1], train_Y)
         # Evaluate
         prediction = model.predict(*test_Xs)
         return metrics.accuracy_score(

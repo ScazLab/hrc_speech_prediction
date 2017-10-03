@@ -4,11 +4,13 @@ from sklearn.preprocessing import normalize
 
 class BaseModel(object):
 
-    def __init__(self, predictor, context_actions, features="both"):
+    def __init__(self, predictor, context_actions, features="both",
+                 randomize_context=None):
         self.model = predictor
         self.actions = context_actions
         self.actions_idx = {a: i for i, a in enumerate(context_actions)}
         self.features = features
+        self.randomize_context = randomize_context
 
     @property
     def n_actions(self):
@@ -29,28 +31,23 @@ class BaseModel(object):
     def _predict_proba(self, X_context, X_speech):
         p = np.zeros((X_context.shape[0], self.n_actions))
         p[:, self.model.classes_.tolist()] = self.model.predict_proba(
-                                              self._get_X(X_context,
-                                                          X_speech))
+            self._get_X(X_context, X_speech))
         return p
 
-    def fit(self, X_context, X_speech, labels, lam=1):
-        # Shuffles the columns of X_context 
-        if self.features == 'both':
-            X_fake_context = X_context.copy()
-            np.random.shuffle(X_fake_context.T)
-
-            X_new_context = np.vstack((X_context, X_fake_context))
-            X_new_speech = np.vstack((X_speech, X_speech))
-            X = self._get_X(X_new_context, X_new_speech)
-
-            s_weights = np.array([lam if i < self.n_actions else 1.0
-                              for i in range(0, X.shape[1])])
-            self.model.fit(X,
-                       self._transform_labels(labels),
-                       sample_weight=s_weights)
-        else:
-            X = self._get_X(X_context, X_speech)
-            self.model.fit(X, self._transform_labels(labels))
+    def fit(self, X_context, X_speech, labels, sample_weight=None):
+        X = self._get_X(X_context, X_speech)
+        if self.randomize_context:
+            Xc = X_context.copy()
+            np.random.shuffle(Xc)
+            Xr = self._get_X(Xc, X_speech)
+            weights = np.ones((X.shape[0])) if sample_weight is None \
+                else sample_weight
+            sample_weight = np.concatenate(
+                (weights, self.randomize_context * weights))
+            X = np.concatenate((X, Xr), axis=0)
+            labels = np.concatenate((labels, labels))
+        self.model.fit(X, self._transform_labels(labels),
+                       sample_weight=sample_weight)
         return self
 
     def predict(self, X_context, X_speech, exclude=[]):
