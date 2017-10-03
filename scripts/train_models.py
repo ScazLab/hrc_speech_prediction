@@ -15,6 +15,7 @@ from hrc_speech_prediction.models import ContextFilterModel
 
 TFIDF = False
 N_GRAMS = (1, 2)
+ADD_LAST_ACTION = True
 
 parser = argparse.ArgumentParser("Train and evaluate classifier")
 parser.add_argument('path', help='path to the experiment data',
@@ -23,8 +24,18 @@ args = parser.parse_args()
 
 data = TrainData.load(os.path.join(args.path, "train.json"))
 train_ids = [i for p in TRAIN_PARTICIPANTS for i in data.data[p].ids]
+if ADD_LAST_ACTION:
+    # Adds one data point for missing objects
+    last_action_ids = [data.data['15.ADT'][-1].ids[i] for i in (-4, -2)]
+    assert([data.get_pair_from_id(i)[0].label for i in last_action_ids
+            ] == ['front_2', 'front_4'])
+    train_ids.extend(last_action_ids)
+# Get features
 X_context, _ = get_context_features(data, actions=ALL_ACTIONS)
 X_context = X_context[train_ids, :]
+if ADD_LAST_ACTION:
+    # use neutral context for last actions
+    X_context[-2:, :] = .5
 X_speech, vocabulary = get_bow_features(data, tfidf=TFIDF, n_grams=N_GRAMS,
                                         max_features=None)
 X_speech = X_speech[train_ids, :]
