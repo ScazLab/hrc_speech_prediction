@@ -13,7 +13,8 @@ from human_robot_collaboration.controller import BaseController
 
 parser = argparse.ArgumentParser("Run the autonomous controller")
 parser.add_argument('path', help='path to the model files', default=os.path.curdir)
-parser.add_argument('-m', '--model', help='model to use', choices=['speech', 'both'],
+parser.add_argument('-m', '--model', help='model to use',
+                    choices=['speech', 'both', 'speech_table', 'both_table'],
                     default='both')
 parser.add_argument('-p', '--participant', help='id of participant', default='test')
 
