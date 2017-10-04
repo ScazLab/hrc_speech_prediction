@@ -149,6 +149,7 @@ class SpeechPredictionController(BaseController):
         if message.data in self.actions_in_context:
             self._update_context(message.data)
         elif message.data == 'START experiment':
+            rospy.logwarn('Starting!')
             self.timer.log('Start')
         elif message.data == 'STOP experiment':
             self._stop()
