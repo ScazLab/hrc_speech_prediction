@@ -37,7 +37,7 @@ if ADD_LAST_ACTION:
     X_s_new = vocabulary.transform([
         "white part with red stripes in the middle",
         "white cylindrical base with red lines in the middle",
-        "white part with red stripes spread appart",
+        "white part with red stripes far apart",
         "white cylindrical base with one red lines at the top and one at the bottom",
     ])
     X_speech = sparse.vstack((X_speech, X_s_new))
