@@ -36,7 +36,7 @@ class DummyPredictor(object):
         # return an object that is in context and which name is in utterance
         intersection = Xs * Xc
         intersection[:, [self.obj.index(a) for a in exclude]] = 0
-        chosen = -np.ones((X.shape[0]), dtype='int8')
+        chosen = -np.ones((Xc.shape[0]), dtype='int8')
         ii, jj = intersection.nonzero()
         chosen[ii] = jj
         scr = self.obj.index('screwdriver_1')
