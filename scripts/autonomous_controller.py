@@ -147,6 +147,8 @@ class SpeechPredictionController(BaseController):
     def _web_interface_cb(self, message):
         if message.data in self.actions_in_context:
             self._update_context(message.data)
+        elif message.data == 'START experiment':
+            self.timer.log('Start')
         elif message.data == 'STOP experiment':
             self._stop()
 
