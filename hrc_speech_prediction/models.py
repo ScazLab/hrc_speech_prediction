@@ -30,11 +30,13 @@ class BaseModel(object):
 
     def _predict_proba(self, X_context, X_speech):
         p = np.zeros((X_context.shape[0], self.n_actions))
+        print( self.model.classes_.tolist())
         p[:, self.model.classes_.tolist()] = self.model.predict_proba(
             self._get_X(X_context, X_speech))
         return p
 
-    def fit(self, X_context, X_speech, labels, sample_weight=None):
+    def fit(self, X_context, X_speech, labels,
+            sample_weight=None, online=False):
         X = self._get_X(X_context, X_speech)
         if self.randomize_context:
             Xc = X_context.copy()
@@ -46,8 +48,24 @@ class BaseModel(object):
                 (weights, self.randomize_context * weights))
             X = np.concatenate((X, Xr), axis=0)
             labels = np.concatenate((labels, labels))
-        self.model.fit(X, self._transform_labels(labels),
-                       sample_weight=sample_weight)
+        if online:
+            lbls = self._transform_labels(labels)
+            for i in range(0, X.shape[0]):
+                self.model.partial_fit(X[i, :].reshape(1, -1),
+                                       [lbls[i]],
+                                       sample_weight=[sample_weight[i]],
+                                       classes=np.unique(lbls))
+        else:
+            self.model.fit(X, self._transform_labels(labels),
+                           sample_weight=sample_weight)
+        return self
+
+    def partial_fit(self, X_context, X_speech, labels, classes):
+        X = self._get_X(X_context, X_speech)
+        lbls = self._transform_labels(labels)
+        clsses = self._transform_labels(classes)
+        self.model.partial_fit(X, lbls,
+                               classes=clsses)
         return self
 
     def predict(self, X_context, X_speech, exclude=[]):
