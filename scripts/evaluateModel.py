@@ -2,6 +2,7 @@ import os
 import argparse
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 from sklearn import metrics
 from sklearn.naive_bayes import BernoulliNB, MultinomialNB
@@ -152,10 +153,14 @@ class EvaluateModel(object):
                                                                   train_X[1],
                                                                   train_Y,
                                                                   classes)
-        print(test_X)
-        prediction = model.predict(*test_X)
-        score.append(metrics.accuracy_score(
-            test_Y, prediction, normalize=True, sample_weight=None))
+            prediction = model.predict(*test_X)
+            score.append(metrics.accuracy_score(
+                test_Y, prediction, normalize=True, sample_weight=None))
+
+        xaxis = np.array([i for i in range(0, self.X_context.shape[0])])
+        score = np.toarray(score)
+        plt.plot(xaxis, score)
+        plt.show()
 
     def _evaluate_on(self, train_idx, test_idx, data_type):
         self.check_indices(train_idx, test_idx)
