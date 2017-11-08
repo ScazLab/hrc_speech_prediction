@@ -30,7 +30,6 @@ class BaseModel(object):
 
     def _predict_proba(self, X_context, X_speech):
         p = np.zeros((X_context.shape[0], self.n_actions))
-        print( self.model.classes_.tolist())
         p[:, self.model.classes_.tolist()] = self.model.predict_proba(
             self._get_X(X_context, X_speech))
         return p

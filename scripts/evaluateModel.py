@@ -4,6 +4,8 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 
+from scipy.interpolate import spline
+
 from sklearn import metrics
 from sklearn.naive_bayes import BernoulliNB, MultinomialNB
 from sklearn.linear_model import LogisticRegression
@@ -137,7 +139,7 @@ class EvaluateModel(object):
             self.cross_validation(data_type)
             self.new_participant(data_type)
 
-    def test_incremental_learning(self, data_type="context"):
+    def test_incremental_learning(self, data_type):
         classes = np.unique((self.data.labels))
         score = []
         for i in range(0, self.X_context.shape[0] - 1):
@@ -157,10 +159,16 @@ class EvaluateModel(object):
             score.append(metrics.accuracy_score(
                 test_Y, prediction, normalize=True, sample_weight=None))
 
-        xaxis = np.array([i for i in range(0, self.X_context.shape[0])])
-        score = np.toarray(score)
-        plt.plot(xaxis, score)
+        print(score)
+        xaxis = np.array([i for i in range(0, self.X_context.shape[0] - 1)])
+        score = np.array(score)
+
+        xnew = np.linspace(xaxis.min(), xaxis.max(), 1000)
+        score_smooth = spline(xaxis, score,xnew)
+
+        plt.plot(xnew, score_smooth)
         plt.show()
+
 
     def _evaluate_on(self, train_idx, test_idx, data_type):
         self.check_indices(train_idx, test_idx)
