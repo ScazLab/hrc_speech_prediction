@@ -7,7 +7,7 @@ import argparse
 import numpy as np
 from scipy import sparse
 from sklearn.externals import joblib
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegression, SGDClassifier
 
 from hrc_speech_prediction.data import TrainData, TRAIN_PARTICIPANTS, ALL_ACTIONS
 from hrc_speech_prediction.features import (get_context_features,
@@ -51,10 +51,14 @@ else:
     weights = None
 
 for features in ('speech', 'both'):
-    model = ContextFilterModel(
-        LogisticRegression(), ALL_ACTIONS, features=features,
-        randomize_context=.3,
-    ).fit(X_context, X_speech, labels, sample_weight=weights)
+    model = ContextFilterModel.model_generator(SGDClassifier,
+                                               loss='log',
+                                               average=True,
+                                               penalty='l1')
+    model = model(ALL_ACTIONS,
+                  features=features,
+                  randomize_context=.3,).fit(X_context, X_speech, labels, sample_weight=weights)
+
     model_path = os.path.join(args.path, 'model_{}{}.pkl'.format(
         features, '_table' if ADD_LAST_ACTION else ''))
     with open(model_path, "wb") as m:
