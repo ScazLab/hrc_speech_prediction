@@ -2,10 +2,12 @@ import os
 import argparse
 
 import numpy as np
+import matplotlib.pyplot as plt
 from sklearn.externals import joblib
 
 from hrc_speech_prediction import features
-from hrc_speech_prediction.data import TrainData, TRAIN_PARTICIPANTS, ALL_ACTIONS
+from hrc_speech_prediction.data import (TrainData,
+                                        TRAIN_PARTICIPANTS, ALL_ACTIONS)
 
 
 parser = argparse.ArgumentParser("Train and evaluate classifier")
@@ -66,7 +68,7 @@ class Node(object):
 
         x_u = self._vectorizer.transform([utter])
         pred = self._model._predict_proba(self._X_context[None,:], x_u)[0]
-        return dict(zip(self._model.actions,pred))
+        return dict(zip(self._model.actions, pred))
 
     def _get_visit_probs(self):
         "Returns probabilities for taking each child action based \
@@ -81,20 +83,55 @@ class Node(object):
         probs.update({k: (self._eps * unseen_denom)
                       for k in self._model.actions
                       if k not in self.seen_children})
-        
+
         print(sum(probs.values()))
+        print(probs)
         return probs
-                                                                    
+
+
     def take_action(self, utter):
-        visit_probs = self._get_visit_probs()
-        speech_probs = self._get_speech_probs(utter)
+        visit_dict = self._get_visit_probs()
+        speech_dict = self._get_speech_probs(utter)
 
-        keys = speech_probs.keys()
-        product_probs = [visit_probs[k] * speech_probs[k] for k in keys]
+        keys = speech_dict.keys()
+        product_probs = [visit_dict[k] * speech_dict[k] for k in keys]
 
-        final_probs = dict(zip(keys, product_probs))
+        final_dict = dict(zip(keys, product_probs))
 
-        return max(final_probs, key=lambda k:final_probs[k])
+        self.plot_predicitions(visit_dict, speech_dict, final_dict)
+        return max(final_dict, key=lambda k:final_dict[k])
+
+
+
+    def plot_predicitions(self, speech, context, both):
+        "Plots the probabilities for each possible action provided by speech, \
+        context, and speech + context "
+        X = np.arange(len(both))
+        ax = plt.subplot(111)
+
+        both_vals = both.values() # save this because it's used a few times
+        # Want to normalize 'both' probs for easier visual comparison
+        nrmlz = sum(both_vals) * 1.0
+
+        ax.bar(X-0.2, speech.values(), width=0.2, color='r', align='center')
+        ax.bar(X, context.values(), width=0.2, color='b', align='center')
+        ax.bar(X+0.2, both_vals / nrmlz, width=0.2, color='g', align='center')
+
+        ax.legend(('Speech', 'Context', 'Both'))
+
+        rects = ax.patches
+        max_prob = max(both_vals) / nrmlz
+
+        # This draws a star above most probable action
+        for r in rects:
+            if r.get_height() > max_prob:
+                ax.text(r.get_x() + r.get_width()/2,
+                        r.get_height() * 1.01, '*', ha='center', va='bottom')
+
+        plt.xticks(X, speech.keys(), rotation=70)
+        plt.title("Next action to take")
+        plt.show()
+
 
     def __str__(self, level=0, val="init"):
         ret ="\t"* level + "{}: {}\n".format(val, self._count)
