@@ -15,13 +15,9 @@ parser.add_argument(
     'path', help='path to the experiment data', default=os.path.curdir)
 
 
-# TODO Make Node more efficient
-# TODO cache calculated probabilities
-# TODO cache speech_model
 class Node(object):
     def __init__(self,
                  model,
-                 data=TrainData.load("../train.json"),
                  vectorizer=joblib.load("../models/vocabulary.pkl")):
         "A state in a task trajectory"
         self._count = 1.0
@@ -29,10 +25,9 @@ class Node(object):
         self._children = {}  # keys: action taken, val: list of nodes
         # self._children = dict(zip(self._speech_model.actions, 
         #                           [Node() for i in self._speech_model.actions]))
-        self._data = data
         #self._X_speech, _ = features.get_bow_features(self._data)
         self._X_context = np.ones((len(self._speech_model.actions)), dtype='bool')
-        
+
         self._vectorizer = vectorizer
         self._eps = 0.15 # Prior on unseen actions
 
@@ -61,7 +56,6 @@ class Node(object):
             self._children[new_act]._increment_count()
         else:
             self._children[new_act] = Node(model=self._speech_model,
-                                           data=self._data,
                                            vectorizer=self._vectorizer)
         self._children[new_act].add_nodes(new_acts)
 
@@ -73,18 +67,15 @@ class Node(object):
             x_u = self._vectorizer.transform([utter])
         else:
             x_u = utter # Then the input is an numpy array already
-        pred = self._speech_model._predict_proba(self._X_context[None,:], x_u)[0]
-        return pred
-        #return dict(zip(self._speech_model.actions, pred))
+        return self._speech_model._predict_proba(self._X_context[None,:], x_u)[0]
 
     def _get_visit_probs(self):
         "Returns probabilities for taking each child action based \
         only on how many times each child has been visited"
 
         prior_s = 1 - self._eps  # weight given to seen action
-        unseen = 1 / ((self._speech_model.n_actions - self.n_children) * 1.0)
+        unseen = 1.0 / ((self._speech_model.n_actions - self.n_children) + .00001)
         s = 1.0 / (sum(self.children_counts) + .00001)
-
 
         return np.array(
             [prior_s * self._children[k]._count * s # prob for seen actions from current state
@@ -94,28 +85,31 @@ class Node(object):
         )
 
     def _get_next_action(self, action):
+        "Returns the node corresponding to action"
         try:
             return self._children[action]
         except KeyError:
-            print("ERROR: Action hasn't been taken from current state.")
+            #print("ERROR: Action hasn't been taken from current state.")
             return Node(model=self._speech_model,
-                        data=self._data,
                         vectorizer=self._vectorizer)
 
     def take_action(self, utter, plot=False):
         visit_probs = self._get_visit_probs()
         speech_probs = self._get_speech_probs(utter)
 
-        final_probs = np.multiply(visit_probs, speech_probs)
-        #{k:visit_probs[k] * speech_probs[k] for k in keys}
+        both_probs = np.multiply(visit_probs, speech_probs)
 
         if plot:
-            self.plot_predicitions(speech_probs, visit_probs, final_probs)
+            self.plot_predicitions(speech_probs, visit_probs, both_probs)
 
-        # next_act = max(final_probs, key=final_probs.get)
-        next_act = self._speech_model.actions[np.argmax(final_probs)]
+        visit_pred = self._speech_model.actions[np.argmax(visit_probs)]
+        speech_pred = self._speech_model.actions[np.argmax(speech_probs)]
+        both_pred = self._speech_model.actions[np.argmax(both_probs)]
 
-        return self._get_next_action(next_act), next_act
+        return (self._get_next_action(both_pred),
+                speech_pred,
+                visit_pred,
+                both_pred)
 
 
 
