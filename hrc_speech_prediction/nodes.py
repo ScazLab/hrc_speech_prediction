@@ -30,6 +30,7 @@ class Node(object):
 
         self._vectorizer = vectorizer
         self._eps = 0.15 # Prior on unseen actions
+        self._speech_eps = 0.15 # slightly boost speech probs uniformly so not all zero
 
 
     @property
@@ -67,7 +68,10 @@ class Node(object):
             x_u = self._vectorizer.transform([utter])
         else:
             x_u = utter # Then the input is an numpy array already
-        return self._speech_model._predict_proba(self._X_context[None,:], x_u)[0]
+        probs = self._speech_model._predict_proba(self._X_context[None,:],
+                                                  x_u)[0] + self._speech_eps
+        print(probs / sum(probs))
+        return probs / sum(probs)
 
     def _get_visit_probs(self):
         "Returns probabilities for taking each child action based \
@@ -89,11 +93,23 @@ class Node(object):
         try:
             return self._children[action]
         except KeyError:
-            #print("ERROR: Action hasn't been taken from current state.")
-            return Node(model=self._speech_model,
-                        vectorizer=self._vectorizer)
+            print("ERROR: Action hasn't been taken from current state.")
+            self._children[action] = Node(model=self._speech_model,
+                                          vectorizer=self._vectorizer)
+            return self._children[action]
 
-    def take_action(self, utter, plot=False):
+    # def _get_next_action_sim(self, action, speech, context, both, utter):
+    #     "Returns the node corresponding to action. \
+    #     Use this one when testing in simulation"
+    #     try:
+    #         return self._children[action]
+    #     except KeyError:
+    #         print("ERROR: Action hasn't been taken from current state.")
+    #         self.plot_predicitions(speech, context, both, utter)
+    #         return Node(model=self._speech_model,
+    #                     vectorizer=self._vectorizer)
+
+    def take_action(self, utter, plot=False, pred_type="both"):
         visit_probs = self._get_visit_probs()
         speech_probs = self._get_speech_probs(utter)
 
@@ -102,18 +118,37 @@ class Node(object):
         if plot:
             self.plot_predicitions(speech_probs, visit_probs, both_probs)
 
-        visit_pred = self._speech_model.actions[np.argmax(visit_probs)]
-        speech_pred = self._speech_model.actions[np.argmax(speech_probs)]
-        both_pred = self._speech_model.actions[np.argmax(both_probs)]
+        if pred_type == "both":
+            pred = self._speech_model.actions[np.argmax(both_probs)]
 
-        return (self._get_next_action(both_pred),
-                speech_pred,
-                visit_pred,
-                both_pred)
+        elif pred_type == "speech":
+            pred = self._speech_model.actions[np.argmax(speech_probs)]
+        else:
+            pred = self._speech_model.actions[np.argmax(visit_probs)]
+
+        return (self._get_next_action(pred), pred)
 
 
+    # def take_action_sim(self, utter_vec, utter, plot=False):
+    #     visit_probs = self._get_visit_probs()
+    #     speech_probs = self._get_speech_probs(utter_vec)
 
-    def plot_predicitions(self, speech, context, both):
+    #     both_probs = np.multiply(visit_probs, speech_probs)
+
+    #     if plot:
+    #         self.plot_predicitions(speech_probs, visit_probs, both_probs)
+
+    #     visit_pred = self._speech_model.actions[np.argmax(visit_probs)]
+    #     speech_pred = self._speech_model.actions[np.argmax(speech_probs)]
+    #     both_pred = self._speech_model.actions[np.argmax(both_probs)]
+
+    #     return (self._get_next_action_sim(both_pred, speech_probs, visit_probs,
+    #                                       both_probs, utter),
+    #             speech_pred,
+    #             visit_pred,
+    #             both_pred)
+
+    def plot_predicitions(self, speech, context, both, utter, actual=None):
         "Plots the probabilities for each possible action provided by speech, \
         context, and speech + context "
         X = np.arange(len(both))
@@ -138,7 +173,7 @@ class Node(object):
                         r.get_height() * 1.01, '*', ha='center', va='bottom')
 
         plt.xticks(X, self._speech_model.actions, rotation=70)
-        plt.title("Next action to take")
+        plt.title(utter)
         plt.show()
 
 
@@ -154,10 +189,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
     n1 = Node(speech_model)
     n1.add_nodes(["foot_2"])
-    n1.add_nodes(["front_2"])
+    n1.add_nodes(["top_1"])
     n1.add_nodes(["foot_2", "foot_1", "leg_1"])
     n1.add_nodes(["chair_back", "seat", "back_1"])
 
 
     print(n1)
-    print("Predicted action :", n1.take_action("pass the blue piece with two red stripes at the bottom", plot=True))
+    print("Predicted action :", n1.take_action("pass the blue piece with two red", plot=True))
