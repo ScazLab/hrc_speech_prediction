@@ -184,6 +184,7 @@ class EvaluateModel(object):
 
         flat_train_idx = [i for p in train_idx for t in p for i in t]
         flat_test_idx = [i for p in test_idx for t in p for i in t]
+        test_utters = [list(self.data.utterances)[i] for i in flat_test_idx]
 
         context_train  = [self.get_labels(t) for p in train_idx for t in p]
         # Train set
@@ -206,22 +207,30 @@ class EvaluateModel(object):
         for t in context_train:
             context_model.add_nodes(t)
 
-        return self._paricipant_accuracy_score(test_X, test_Y, context_model)
+        return self._paricipant_accuracy_score(test_X, test_Y,
+                                               context_model, test_utters)
 
-    def _paricipant_accuracy_score(self, test_X, labels, model):
+    def _paricipant_accuracy_score(self, test_X, labels, model, utters):
         score = np.zeros(3) # speech, context, and both respectively
         s = len(labels)
         for t in test_X:
-            curr_state = model
+            curr_both = model
+            curr_context = model
+            curr_speech = model
+            print("\nNEW TRIAL\n")
             for u in t:
                 y = labels.pop(0)
-                curr_state, speech, context, both = curr_state.take_action(u)
+
+                curr_both, both = curr_both.take_action(u, pred_type='both')
+                curr_speech, speech = curr_speech.take_action(u, pred_type='speech')
+                curr_context, context = curr_context.take_action(u, pred_type='context')
+
+                print(y, speech, context, both)
 
                 score[0] += 1.0 * (speech in y)
                 score[1] += 1.0 * (context in y)
                 score[2] += 1.0 * (both in y)
 
-        print(score / s)
         return score / s
 
 
