@@ -4,6 +4,8 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 
+import random
+
 from scipy.interpolate import spline
 
 from sklearn import metrics
@@ -12,7 +14,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import SGDClassifier
 
-from hrc_speech_prediction import nodes
+from hrc_speech_prediction import tree
 from hrc_speech_prediction import features
 from hrc_speech_prediction.data import (TrainData,
                                         TRAIN_PARTICIPANTS,
@@ -41,6 +43,7 @@ class EvaluateModel(object):
         """
         self.data = TrainData.load(os.path.join(data_path, "train.json"))
         self.model = model
+        self.comined_model = None
         self.online = online
         self.X_context, self.context_actions = \
             features.get_context_features(self.data)
@@ -49,6 +52,13 @@ class EvaluateModel(object):
         # Participants we will exclude from testing, but will train on
         self.test_participants = ["15.ADT"]
         self.lam = lam
+
+        self.C_probs = []
+        self.S_probs = []
+        self.B_probs = []
+
+        self.Ys = []
+        self.Us = []
 
     def get_Xs(self, indices):
         return self.X_context[indices, :], self.X_speech[indices, :]
@@ -59,7 +69,7 @@ class EvaluateModel(object):
     def check_indices(self, train_idx, test_idx):
         assert (not set(train_idx).intersection(test_idx))
 
-    def test_on_one_participant(self, data_type="context"):
+    def test_on_one_participant(self, data_type="context", speech_eps=0.15):
         """
         Leaves on participant out of training and then tests on them. Does
         this for each participant
@@ -70,9 +80,11 @@ class EvaluateModel(object):
         # Get the indices for training and testing data
         for tst in participants:
             # Each sublist contains indices for each trial (a trial being an np array)
+            print(list(self.data.data[tst].ids))
             test_idx = [
                 [trial.ids for trial in self.data.data[tst]]
             ]
+            print(test_idx)
             # a list of lists where the sublist contains
             # the trials for each participant
             train_idx = [
@@ -81,10 +93,12 @@ class EvaluateModel(object):
                 ]
                 for part in TRAIN_PARTICIPANTS
             ]
-            results[tst] = self._evaluate_on(train_idx, test_idx, data_type)
+            results[tst] = self._evaluate_on(train_idx, test_idx,
+                                             data_type, speech_eps)
         self._print_result_table(results, "Participants")
+        return [t[2] for t in results.values()]
 
-    def test_on_one_trial(self, data_type="context"):
+    def test_on_one_trial(self, data_type="context", speech_eps=10):
         """
         Excludes on trial from training (i.e. A, B, or C) and uses these
         excluded trials as tests
@@ -93,17 +107,24 @@ class EvaluateModel(object):
         results = {}
         for tst in ['A', 'B', 'C']:
             test_idx = [
-                i
+                [
+                    trial.ids for trial in self.data.data[part]
+                    if tst == trial.instruction
+                ]
                 for part in TRAIN_PARTICIPANTS
-                for trial in self.data.data[part]
-                for i in trial.ids
-                if tst == trial.instruction
             ]
             train_idx = [
-                i for p in TRAIN_PARTICIPANTS for i in self.data.data[p].ids
-                if i not in test_idx
+
+                [
+                    trial.ids for trial in self.data.data[part]
+                    if tst != trial.instruction
+                ]
+                for part in TRAIN_PARTICIPANTS
+                # i for p in TRAIN_PARTICIPANTS for i in self.data.data[p].ids
+                # if i not in test_idx
             ]
-            results[tst] = self._evaluate_on(train_idx, test_idx, data_type)
+            results[tst] = self._evaluate_on(train_idx, test_idx,
+                                             data_type, speech_eps)
         self._print_result_table(results, "Instruction")
 
     def cross_validation(self, data_type="context"):
@@ -179,12 +200,13 @@ class EvaluateModel(object):
         plt.show()
 
 
-    def _evaluate_on(self, train_idx, test_idx, data_type):
+    def _evaluate_on(self, train_idx, test_idx, data_type, speech_eps):
         # self.check_indices(train_idx, test_idx)
 
         flat_train_idx = [i for p in train_idx for t in p for i in t]
         flat_test_idx = [i for p in test_idx for t in p for i in t]
         test_utters = [list(self.data.utterances)[i] for i in flat_test_idx]
+        self.Us += [i for i in test_utters]
 
         context_train  = [self.get_labels(t) for p in train_idx for t in p]
         # Train set
@@ -195,6 +217,7 @@ class EvaluateModel(object):
         # each array represents the utterances for one participant
         test_X = [self.get_Xs(t)[1] for p in test_idx for t in p]
         test_Y = self.get_labels(flat_test_idx)
+        self.Ys += [i for i in test_Y]
         # Train
         speech_model = self.model(
             self.context_actions,
@@ -202,36 +225,104 @@ class EvaluateModel(object):
             randomize_context=.25, ).fit(speech_train_Xs[0], speech_train_Xs[1],
                                          speech_train_Y, online=self.online)
         # Evaluate
-        context_model = nodes.Node(model=speech_model)
+        self.comined_model = tree.Tree(root=tree.Node(),
+                                       speech_model=speech_model)
         # train context model on state visitations
         for t in context_train:
-            context_model.add_nodes(t)
+            self.comined_model.add_branch(t)
 
         return self._paricipant_accuracy_score(test_X, test_Y,
-                                               context_model, test_utters)
+                                               self.comined_model, test_utters)
 
     def _paricipant_accuracy_score(self, test_X, labels, model, utters):
+        combined_model = model
+        context_model = tree.Tree(root=combined_model.root,
+                                  speech_model=combined_model.speech_model)
+
         score = np.zeros(3) # speech, context, and both respectively
-        s = len(labels)
+        n = len(labels)
         for t in test_X:
-            curr_both = model
-            curr_context = model
-            curr_speech = model
+            # curr_b = model
+            # curr_c = model
+            # curr_s = model
             print("\nNEW TRIAL\n")
             for u in t:
                 y = labels.pop(0)
 
-                curr_both, both = curr_both.take_action(u, pred_type='both')
-                curr_speech, speech = curr_speech.take_action(u, pred_type='speech')
-                curr_context, context = curr_context.take_action(u, pred_type='context')
+                both, s, _, b = combined_model.take_action(model="both",
+                                                           utter=u,
+                                                           return_probs=True)
 
-                print(y, speech, context, both)
+                speech = combined_model.pred_action(s)
+                context, c = context_model.take_action(model="context")
+
+                self.C_probs.append(c)
+                self.S_probs.append(s)
+                self.B_probs.append(b)
+
+                #print(y, speech, context, both)
 
                 score[0] += 1.0 * (speech in y)
                 score[1] += 1.0 * (context in y)
                 score[2] += 1.0 * (both in y)
 
-        return score / s
+            combined_model.reset()
+            context_model.reset()
+        return score / n
+
+
+
+    def plot_random_probs(self, num_plots):
+        self.test_on_one_participant("speech", speech_eps=0.1)
+        rand_idx = random.sample([i for i in range(0, len(self.C_probs))], num_plots)
+
+        Cs = np.array(self.C_probs)
+        Bs = np.array(self.B_probs)
+        Ss = np.array(self.S_probs)
+
+
+        labels = self.comined_model._speech_model.actions
+        width = .3
+
+        #axes[0].legend(('Speech', 'Context', 'Both'))
+        for i in rand_idx:
+            fig, ax = plt.subplots(1, 1)
+            X = np.arange(len(Cs[0]))
+            c = Cs[i, :]
+            b = Bs[i, :]
+            s = Ss[i, :]
+
+            print(c)
+
+            y = self.Ys[i]
+            u = self.Us[i]
+
+            nrmlz = 1.0 / sum(b)
+
+            ax.bar(X-width, s, width=width, color='r', align='center')
+            ax.bar(X, c, width=width, color='b', align='center', tick_label=labels)
+            ax.bar(X+width, b * nrmlz, width=width, color='g', align='center')
+            rects = ax.patches
+            max_prob = max(b * nrmlz)
+
+            ax.legend(('Speech', 'Context', 'Both'))
+
+            #This draws a star above most probable action
+            for r in rects:
+                if r.get_height() == max_prob:
+                    ax.text(r.get_x() + r.get_width()/2,
+                            r.get_height() * 1.01, '*', ha='center', va='bottom', fontsize="12")
+
+            ax.text(self.comined_model._speech_model.actions.index(y), max_prob, "$", fontsize="12")
+            #plt.xticks(X, labels, rotation=70)
+            ax.set_title(u, fontsize="9")
+            plt.setp(ax.get_xticklabels(), rotation=30, horizontalalignment='right')
+            fig.tight_layout()
+            plt.savefig("/home/jake/catkin_ws/src/hrc_speech_prediction/figs/fig.{}.png".format(i))
+            plt.clf() 
+    
+
+
 
 
     def _print_result_table(self, results, key_title):
@@ -240,7 +331,7 @@ class EvaluateModel(object):
             key_title,
             " ".join(["{:^7}".format(k) for k in results.keys()]),
             w=w) +
-              "{:^7} {:^7}".format("Mean", "Std. Dev."))
+              "{:^7} {:^7}".format("AVG.", "STD."))
         print("{:<{w}}: {} ".format(
             "Speech ",
             " ".join(["{:^7.2f}".format(v[0]) for v in results.values()]), w=w)
@@ -270,11 +361,13 @@ if __name__ == '__main__':
         ContextFilterModel.model_generator(SGDClassifier,
                                            loss='log',
                                            average=True,
-                                           penalty='l1'),
+                                           penalty='l2',
+                                           alpha=0.0002),
         args.path,
         lam=0.5,
         n_grams=(1, 2),
         online=False
     )
-    ev.test_on_one_participant("speech")
-    # ev.test_on_one_participant()
+    ev.test_on_one_participant("speech", speech_eps=0.01)
+    #ev.plot_random_probs(3)
+    #ev.test_on_one_participant()
