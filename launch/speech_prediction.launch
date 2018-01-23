@@ -74,6 +74,6 @@
     <include file="$(find ros_speech2text)/launch/ros_speech2text.launch" />
 
     <!-- Display listening on screen -->
-    <node pkg="ros_speech2text" type="listening_to_display" name="display listening"  output="screen"/>
+    <node pkg="ros_speech2text" type="listening_to_display" name="listening_to_display"  output="screen"/>
 
 </launch>
