@@ -10,13 +10,17 @@ import rospy
 from std_msgs.msg import String
 
 from human_robot_collaboration.controller import BaseController
+from human_robot_collaboration import combined_model as cm
 
 parser = argparse.ArgumentParser("Run the autonomous controller")
-parser.add_argument('path', help='path to the model files', default=os.path.curdir)
-parser.add_argument('-m', '--model', help='model to use',
+parser.add_argument('path',
+                    help='path to the model files', default=os.path.curdir)
+parser.add_argument('-m',
+                    '--model', help='model to use',
                     choices=['speech', 'both', 'speech_table', 'both_table'],
                     default='both')
-parser.add_argument('-p', '--participant', help='id of participant', default='test')
+parser.add_argument('-p',
+                    '--participant', help='id of participant', default='test')
 
 
 class DummyPredictor(object):
@@ -88,7 +92,10 @@ class SpeechPredictionController(BaseController):
             self.model = joblib.load(model_path)
             # utterance vectorizer
             vectorizer_path = os.path.join(path, "vocabulary.pkl")
+            combined_model_path = os.path.join(path,
+                                               "combined_model_0.150.15.pkl")
             self.vectorizer = joblib.load(vectorizer_path)
+            self.combined_model = joblib.laod(combined_model_path)
             # actions in order of context vector
             self.actions_in_context = self.model.actions
         # Subscriber to web topic to update context on repeated fail
@@ -105,18 +112,23 @@ class SpeechPredictionController(BaseController):
             rospy.loginfo('Waiting for utterance')
             utterance = self.listen_sub.wait_for_msg(timeout=20.)
             if utterance is None or len(utterance.split()) < self.MIN_WORDS:
-                rospy.loginfo('Skipping utterance (too short): {}'.format(utterance))
+                rospy.loginfo('Skipping utterance (too short): {}'.
+                              format(utterance))
             else:
                 x_u = self.vectorizer.transform([utterance])
-                with self._ctxt_lock:
-                    ctxt = self.context.copy()
-                    action = self.model.predict(ctxt[None, :], x_u,
-                                                exclude=self.wrong_actions)[0]
-                message = "Taking action {} for \"{}\"".format(action, utterance)
+                action, _ = self.combined_model.take_action(utter=x_u)
+                # with self._ctxt_lock:
+                #     ctxt = self.context.copy()
+                #     action = self.model.predict(ctxt[None, :], x_u,
+                #                                 exclude=self.wrong_actions)[0]
+                message = "Taking action {} for \"{}\"".format(action,
+                                                               utterance)
                 rospy.loginfo(message)
                 self.timer.log(message)
                 if self.take_action(action):
-                    self._update_context(action)
+                    self.combined_model.curr = action
+
+                    #self._update_context(action)
 
     def take_action(self, action):
         side, obj = self.OBJECT_DICT[action]

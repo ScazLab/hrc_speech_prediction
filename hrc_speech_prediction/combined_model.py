@@ -15,10 +15,9 @@ parser.add_argument(
     'path', help='path to the experiment data', default=os.path.curdir)
 
 
-class Tree(object):
+class CombinedModel(object):
     def __init__(self, speech_model, root,
-                 vectorizer=joblib.load("../models/vocabulary.pkl"),
-                 speech_eps=0.15, context_eps=0.15):
+                 vectorizer, speech_eps=0.15, context_eps=0.15):
         self.speech_model = speech_model
         self._vectorizer = vectorizer
 
@@ -37,8 +36,13 @@ class Tree(object):
         return self._curr
 
     @curr.setter
-    def curr(self, node):
-        self._curr = node
+    def curr(self, node=None, action=None):
+        if node:
+            self._curr = node
+        elif action:
+            self._curr = self._curr.get_or_create_node(action)
+        else:
+            raise Exception("Not a valid input for curr!")
 
     def add_branch(self, list_of_actions):
         return self.root.add_branch(list_of_actions)
@@ -87,12 +91,12 @@ class Tree(object):
             probs = np.multiply(context_probs, speech_probs)
 
         action = self.pred_action(probs)
-        self.curr = self.curr._get_next_node(action)
+        #self.curr = self.curr._get_next_node(action)
 
-        if plot:
+        if plot and model == "both":
             self.plot_predicitions(speech_probs, context_probs,
-                                   combined_probs, utter)
-        if return_probs and model=="both":
+                                   probs, utter)
+        if return_probs and model == "both":
             return action, speech_probs, context_probs, probs
         else:
             return action, probs
@@ -143,7 +147,7 @@ class Tree(object):
 class Node(object):
     def __init__(self):
         "A state in a task trajectory"
-        self._count = 1.0
+        self._count = 0.0
         self._children = {}  # keys: action taken, val: list of nodes
 
 
@@ -156,31 +160,33 @@ class Node(object):
         return self._children.keys()
 
     @property
-    def children_counts(self):
-        return [self._children[c]._count for c in self.seen_children]
+    def sum_children_counts(self):
+        return sum([self._children[c]._count for c in self.seen_children])
 
     def _increment_count(self):
         self._count += 1.0
         return self
 
-    def add_branch(self, new_acts):
-        if not new_acts:  # list is empty
+    def get_or_create_node(self, action):
+        if action not in self.seen_children:
+            self._children[action] = Node()
+        return self._children[action]
+
+    def add_branch(self, actions):
+        if not actions:  # list is empty
             return self
 
-        new_act = new_acts.pop(0)
+        action = actions.pop(0)
+        c = self.get_or_create_node(action)
 
-        if new_act in self.seen_children:
-            self._children[new_act]._increment_count()
-        else:
-            self._children[new_act] = Node() 
-        self._children[new_act].add_branch(new_acts)
+        c._increment_count().add_branch(actions)
 
 
     def _get_context_probs(self, eps, actions):
         "Returns probabilities for taking each child action based \
         only on how many times each child has been visited"
 
-        s = 1.0 / (sum(self.children_counts) + .00001)
+        s = 1.0 / (self.sum_children_counts + .00001)
 
         return np.array(
             [self._children[k]._count * s
@@ -198,34 +204,6 @@ class Node(object):
             return self._children[action]
 
 
-    def take_action(self, utter, plot=False, pred_type="both",
-                    real_utter=None, actual=None, return_probs=False):
-        visit_probs = self._get_context_probs()
-        speech_probs = self._get_speech_probs(utter)
-
-        both_probs = np.multiply(visit_probs, speech_probs)
-
-
-        if pred_type == "both":
-            pred = self.speech_model.actions[np.argmax(both_probs)]
-
-        elif pred_type == "speech":
-            pred = self.speech_model.actions[np.argmax(speech_probs)]
-        elif pred_type == "context":
-            pred = self.speech_model.actions[np.argmax(visit_probs)]
-
-        next_act, ooc = self._get_next_node(pred)
-        if plot and pred_type == "both":
-            self.plot_predicitions(speech_probs, visit_probs,
-                                   both_probs, real_utter, actual)
-        if return_probs:
-            return (next_act, pred, visit_probs, speech_probs, both_probs)
-        else:
-            return (next_act, pred)
-
-
-
-
 
     def __str__(self, level=0, val="init"):
         ret ="\t"* level + "{}: {}\n".format(val, self._count)
@@ -234,15 +212,3 @@ class Node(object):
         return ret
 
 
-if __name__ == '__main__':
-    speech_model = joblib.load("../models/model_speech_table.pkl")
-    args = parser.parse_args()
-    t = Tree(speech_model=speech_model, root=Node())
-    t.add_branch(["foot_2"])
-    t.add_branch(["top_1"])
-    t.add_branch(["foot_2", "foot_1", "leg_1"])
-    t.add_branch(["chair_back", "seat", "back_1"])
-
-    print(t)
-
-    print(t.take_action(utter="pass the blue piece with two red", model="speech", plot=True))

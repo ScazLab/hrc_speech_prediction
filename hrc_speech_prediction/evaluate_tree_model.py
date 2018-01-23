@@ -14,7 +14,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import SGDClassifier
 
-from hrc_speech_prediction import tree
+from hrc_speech_prediction import combined_model
 from hrc_speech_prediction import features
 from hrc_speech_prediction.data import (TrainData,
                                         TRAIN_PARTICIPANTS,
@@ -225,7 +225,7 @@ class EvaluateModel(object):
             randomize_context=.25, ).fit(speech_train_Xs[0], speech_train_Xs[1],
                                          speech_train_Y, online=self.online)
         # Evaluate
-        self.comined_model = tree.Tree(root=tree.Node(),
+        self.comined_model = combined_model.CombinedModel(root=combined_model.Node(),
                                        speech_model=speech_model)
         # train context model on state visitations
         for t in context_train:
@@ -236,15 +236,12 @@ class EvaluateModel(object):
 
     def _paricipant_accuracy_score(self, test_X, labels, model, utters):
         combined_model = model
-        context_model = tree.Tree(root=combined_model.root,
+        context_model = combined_model.Comb(root=combined_model.root,
                                   speech_model=combined_model.speech_model)
 
         score = np.zeros(3) # speech, context, and both respectively
         n = len(labels)
         for t in test_X:
-            # curr_b = model
-            # curr_c = model
-            # curr_s = model
             print("\nNEW TRIAL\n")
             for u in t:
                 y = labels.pop(0)
@@ -280,7 +277,6 @@ class EvaluateModel(object):
         Bs = np.array(self.B_probs)
         Ss = np.array(self.S_probs)
 
-
         labels = self.comined_model._speech_model.actions
         width = .3
 
@@ -288,6 +284,7 @@ class EvaluateModel(object):
         for i in rand_idx:
             fig, ax = plt.subplots(1, 1)
             X = np.arange(len(Cs[0]))
+
             c = Cs[i, :]
             b = Bs[i, :]
             s = Ss[i, :]
