@@ -10,7 +10,7 @@ import rospy
 from std_msgs.msg import String
 
 from human_robot_collaboration.controller import BaseController
-from human_robot_collaboration import combined_model as cm
+from hrc_speech_prediction import combined_model as cm
 
 parser = argparse.ArgumentParser("Run the autonomous controller")
 parser.add_argument('path',
@@ -22,6 +22,11 @@ parser.add_argument('-m',
 parser.add_argument('-p',
                     '--participant', help='id of participant', default='test')
 
+parser.add_argument('-d',
+                    '--debug', help='displays plots for each predicition',
+                    dest='debug',
+                    action='store_true')
+parser.set_defaults(debug=False)
 
 class DummyPredictor(object):
 
@@ -83,23 +88,23 @@ class SpeechPredictionController(BaseController):
         super(SpeechPredictionController, self).__init__(
             left=True, right=True, speech=False, listen=True, recovery=True,
             timer_path=os.path.join(path, timer_path), **kwargs)
-        if debug:
-            self.model = DummyPredictor(list(self.OBJECT_DICT.keys()))
-            self.vectorizer = self.model
-            self.actions_in_context = self.model.obj
-        else:
-            model_path = os.path.join(path, "model_{}.pkl".format(model))
-            self.model = joblib.load(model_path)
-            # utterance vectorizer
-            vectorizer_path = os.path.join(path, "vocabulary.pkl")
-            combined_model_path = os.path.join(path,
-                                               "combined_model_0.150.15.pkl")
-            self.vectorizer = joblib.load(vectorizer_path)
-            self.combined_model = joblib.laod(combined_model_path)
-            # actions in order of context vector
-            self.actions_in_context = self.model.actions
+        # if debug:
+          #  self.model = DummyPredictor(list(self.OBJECT_DICT.keys()))
+          #  self.vectorizer = self.model
+          #  self.actions_in_context = self.model.obj
+        model_path = os.path.join(path, "model_{}.pkl".format(model))
+        self.model = joblib.load(model_path)
+        # utterance vectorizer
+        vectorizer_path = os.path.join(path, "vocabulary.pkl")
+        combined_model_path = os.path.join(path,
+                                            "combined_model_0.150.15.pkl")
+        self.vectorizer = joblib.load(vectorizer_path)
+        self.combined_model = joblib.load(combined_model_path)
+        # actions in order of context vector
+        self.actions_in_context = self.model.actions
         # Subscriber to web topic to update context on repeated fail
         rospy.Subscriber(self.WEB_TOPIC, String, self._web_interface_cb)
+        self._debug = debug
         self._ctxt_lock = Lock()
         self.context = np.ones((len(self.actions_in_context)), dtype='bool')
 
@@ -115,8 +120,9 @@ class SpeechPredictionController(BaseController):
                 rospy.loginfo('Skipping utterance (too short): {}'.
                               format(utterance))
             else:
-                x_u = self.vectorizer.transform([utterance])
-                action, _ = self.combined_model.take_action(utter=x_u)
+                #x_u = self.vectorizer.transform([utterance])
+                action, _ = self.combined_model.take_action(utter=utterance,
+                                                            plot=self._debug)
                 # with self._ctxt_lock:
                 #     ctxt = self.context.copy()
                 #     action = self.model.predict(ctxt[None, :], x_u,
@@ -188,6 +194,7 @@ class SpeechPredictionController(BaseController):
 args = parser.parse_args()
 controller = SpeechPredictionController(
     path=args.path,
+    debug=args.debug,
     model=args.model,
     timer_path='timer-{}.json'.format(args.participant)
 )

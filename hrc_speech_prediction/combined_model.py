@@ -36,11 +36,11 @@ class CombinedModel(object):
         return self._curr
 
     @curr.setter
-    def curr(self, node=None, action=None):
-        if node:
+    def curr(self, node_or_str):
+        if isinstance(node_or_str, Node):
             self._curr = node
-        elif action:
-            self._curr = self._curr.get_or_create_node(action)
+        elif isinstance(node_or_str, str):
+            self._curr = self._curr.get_or_create_node(node_or_str)
         else:
             raise Exception("Not a valid input for curr!")
 
@@ -138,7 +138,7 @@ class CombinedModel(object):
         if save_path:
             plt.savefig(save_path)
         else:
-            plt.show()
+            plt.show(block=False)
 
     def __str__(self):
         return self.root.__str__()

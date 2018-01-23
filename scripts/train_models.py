@@ -15,6 +15,8 @@ from hrc_speech_prediction.features import (get_context_features,
 from hrc_speech_prediction.models import ContextFilterModel
 from hrc_speech_prediction import combined_model as cm
 
+def  get_labels(indices, data):
+    return [list(data.labels)[i] for i in indices]
 
 TFIDF = False
 N_GRAMS = (1, 2)
@@ -30,7 +32,7 @@ data = TrainData.load(os.path.join(args.path, "train.json"))
 
 flat_train_ids = [i for p in TRAIN_PARTICIPANTS for i in data.data[p].ids]
 train_ids_by_trial = [
-    trial.ids for p in TRAIN_PARTICIPANTS
+    get_labels(trial.ids, data) for p in TRAIN_PARTICIPANTS
     for trial in data.data[p]
 ]
 
@@ -88,6 +90,6 @@ model_path = os.path.join(args.path, 'combined_model_{}{}.pkl'.format(
     speech_eps, context_eps))
 
 with open(model_path, "wb") as m:
-    joblib.dump(speech_model, m, compress=9)
+    joblib.dump(combined_model, m, compress=9)
 with open(os.path.join(args.path, 'vectorizer.pkl'), "wb") as m:
     joblib.dump(vectorizer, m, compress=9)
