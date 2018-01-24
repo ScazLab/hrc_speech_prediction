@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+from hrc_speech_prediction import display_plots as dp
 
 class CombinedModel(object):
     def __init__(self,
@@ -9,6 +10,7 @@ class CombinedModel(object):
                  vectorizer,
                  speech_eps=0.15,
                  context_eps=0.15):
+
         self.speech_model = speech_model
         self._vectorizer = vectorizer
 
@@ -135,6 +137,8 @@ class CombinedModel(object):
 
         plt.xticks(X, self.speech_model.actions, rotation=70)
         plt.title(utter)
+
+        display = dp.DisplayPlots(self.speech_model, speech, context, both, utter, actual=actual, save_path=save_path)
 
         if save_path:
             plt.savefig(save_path)
