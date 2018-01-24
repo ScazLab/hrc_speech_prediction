@@ -1,5 +1,22 @@
+import os
+import argparse
+
 import numpy as np
 from sklearn.preprocessing import normalize
+
+
+def get_argument_parser(description=None):
+    if description is None:
+        description = ("This script needs a working path to read store "
+                       "trained models.")
+    parser = argparse.ArgumentParser(description)
+    parser.add_argument(
+        'path', help='path to the experiment data', default=os.path.curdir)
+    return parser
+
+
+def get_path_from_cli_arguments(description=None):
+    return get_argument_parser(description=description).parse_args().path
 
 
 class BaseModel(object):

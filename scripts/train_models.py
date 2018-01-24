@@ -2,7 +2,6 @@
 
 
 import os
-import argparse
 
 import numpy as np
 from scipy import sparse
@@ -12,22 +11,22 @@ from sklearn.linear_model import LogisticRegression, SGDClassifier
 from hrc_speech_prediction.data import TrainData, TRAIN_PARTICIPANTS, ALL_ACTIONS
 from hrc_speech_prediction.features import (get_context_features,
                                             get_bow_features)
-from hrc_speech_prediction.models import ContextFilterModel
+from hrc_speech_prediction.models import (ContextFilterModel,
+                                          get_path_from_cli_arguments)
 from hrc_speech_prediction import combined_model as cm
 
-def  get_labels(indices, data):
+
+def get_labels(indices, data):
     return [list(data.labels)[i] for i in indices]
+
 
 TFIDF = False
 N_GRAMS = (1, 2)
 ADD_LAST_ACTION = True
 
-parser = argparse.ArgumentParser("Train and evaluate classifier")
-parser.add_argument('path', help='path to the experiment data',
-                    default=os.path.curdir)
-args = parser.parse_args()
+path = get_path_from_cli_arguments(description="Train classifiers")
 
-data = TrainData.load(os.path.join(args.path, "train.json"))
+data = TrainData.load(os.path.join(path, "train.json"))
 
 
 flat_train_ids = [i for p in TRAIN_PARTICIPANTS for i in data.data[p].ids]
@@ -86,10 +85,10 @@ combined_model = cm.CombinedModel(root=cm.Node(),
 for t in train_ids_by_trial:
     combined_model.add_branch(t)
 
-model_path = os.path.join(args.path, 'combined_model_{}{}.pkl'.format(
+model_path = os.path.join(path, 'combined_model_{}{}.pkl'.format(
     speech_eps, context_eps))
 
 with open(model_path, "wb") as m:
     joblib.dump(combined_model, m, compress=9)
-with open(os.path.join(args.path, 'vectorizer.pkl'), "wb") as m:
+with open(os.path.join(path, 'vectorizer.pkl'), "wb") as m:
     joblib.dump(vectorizer, m, compress=9)

@@ -1,5 +1,4 @@
 import os
-import argparse
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -7,23 +6,14 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import spline
 
 from sklearn import metrics
-from sklearn.naive_bayes import BernoulliNB, MultinomialNB
-from sklearn.linear_model import LogisticRegression
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.linear_model import SGDClassifier
 
 from hrc_speech_prediction import features
-from hrc_speech_prediction.data import (TrainData,
-                                        TRAIN_PARTICIPANTS,
-                                        ALL_ACTIONS)
-from hrc_speech_prediction.models import (BaseModel,
-                                          ContextFilterModel,
-                                          PragmaticModel)
+from hrc_speech_prediction.data import (TrainData, TRAIN_PARTICIPANTS)
+from hrc_speech_prediction.models import (ContextFilterModel,
+                                          get_argument_parser)
 
 
-parser = argparse.ArgumentParser("Train and evaluate classifier")
-parser.add_argument(
-    'path', help='path to the experiment data', default=os.path.curdir)
+parser = get_argument_parser("Evaluate classifier")
 
 
 class EvaluateModel(object):

@@ -1,6 +1,3 @@
-import os
-import argparse
-
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.externals import joblib
@@ -8,11 +5,6 @@ from sklearn.externals import joblib
 from hrc_speech_prediction import features
 from hrc_speech_prediction.data import (TrainData,
                                         TRAIN_PARTICIPANTS, ALL_ACTIONS)
-
-
-parser = argparse.ArgumentParser("Train and evaluate classifier")
-parser.add_argument(
-    'path', help='path to the experiment data', default=os.path.curdir)
 
 
 class CombinedModel(object):
@@ -25,7 +17,7 @@ class CombinedModel(object):
         self._context_eps = context_eps
 
         self.root = root
-        self._curr = self.root # current node we are looking at
+        self._curr = self.root  # current node we are looking at
 
         self._X_context = np.ones((len(self.speech_model.actions)), dtype='bool')
         self.actions = self.speech_model.actions
