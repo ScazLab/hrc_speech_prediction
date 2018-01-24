@@ -30,7 +30,7 @@ class CombinedModel(object):
     @curr.setter
     def curr(self, node_or_str):
         if isinstance(node_or_str, Node):
-            self._curr = node
+            self._curr = node_or_str
         elif isinstance(node_or_str, str):
             self._curr = self._curr.get_or_create_node(node_or_str)
         else:
