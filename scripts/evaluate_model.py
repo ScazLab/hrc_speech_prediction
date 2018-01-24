@@ -129,7 +129,7 @@ class EvaluateModel(object):
             self.new_participant(data_type)
 
     def test_incremental_learning(self, data_type):
-        classes = np.unique((self.data.labels))
+        classes = np.unique(list(self.data.labels))
         score = []
         for i in range(0, self.X_context.shape[0] - 1):
             # Train set
