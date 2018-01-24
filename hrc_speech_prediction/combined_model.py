@@ -1,10 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.externals import joblib
-
-from hrc_speech_prediction import features
-from hrc_speech_prediction.data import (TrainData,
-                                        TRAIN_PARTICIPANTS, ALL_ACTIONS)
 
 
 class CombinedModel(object):
@@ -21,7 +16,6 @@ class CombinedModel(object):
 
         self._X_context = np.ones((len(self.speech_model.actions)), dtype='bool')
         self.actions = self.speech_model.actions
-
 
     @property
     def curr(self):
@@ -43,14 +37,12 @@ class CombinedModel(object):
         "Takes a speech utterance and returns probabilities for each \
             possible action on the speech model alone"
 
-
         if isinstance(utter, str):
             x_u = self._vectorizer.transform([utter])
         else:
-            x_u = utter # Then the input is an numpy array already
+            x_u = utter  # Then the input is an numpy array already
 
-        probs = self.speech_model._predict_proba(self._X_context[None,:],
-                                                    x_u)[0]
+        probs = self.speech_model._predict_proba(self._X_context[None, :], x_u)[0]
 
         return self._apply_eps(self._speech_eps, probs)
 
@@ -83,7 +75,7 @@ class CombinedModel(object):
             probs = np.multiply(context_probs, speech_probs)
 
         action = self.pred_action(probs)
-        #self.curr = self.curr._get_next_node(action)
+        # self.curr = self.curr._get_next_node(action)
 
         if plot and model == "both":
             self.plot_predicitions(speech_probs, context_probs,
@@ -106,19 +98,19 @@ class CombinedModel(object):
         # Want to normalize 'both' probs for easier visual comparison
         nrmlz = 1.0 / sum(both)
 
-        ax.bar(X-0.2, speech, width=0.2, color='r', align='center')
+        ax.bar(X - 0.2, speech, width=0.2, color='r', align='center')
         ax.bar(X, context, width=0.2, color='b', align='center')
-        ax.bar(X+0.2, both * nrmlz, width=0.2, color='g', align='center')
+        ax.bar(X + 0.2, both * nrmlz, width=0.2, color='g', align='center')
 
         ax.legend(('Speech', 'Context', 'Both'))
 
         rects = ax.patches
         max_prob = max(both * nrmlz)
 
-        #This draws a star above most probable action
+        # This draws a star above most probable action
         for r in rects:
             if r.get_height() == max_prob:
-                ax.text(r.get_x() + r.get_width()/2,
+                ax.text(r.get_x() + r.get_width() / 2,
                         r.get_height() * 1.01, '*', ha='center', va='bottom')
 
         if actual:
@@ -137,11 +129,11 @@ class CombinedModel(object):
 
 
 class Node(object):
+
     def __init__(self):
         "A state in a task trajectory"
         self._count = 0.0
         self._children = {}  # keys: action taken, val: list of nodes
-
 
     @property
     def n_children(self):
@@ -173,7 +165,6 @@ class Node(object):
 
         c._increment_count().add_branch(actions)
 
-
     def _get_context_probs(self, eps, actions):
         "Returns probabilities for taking each child action based \
         only on how many times each child has been visited"
@@ -189,18 +180,14 @@ class Node(object):
     def _get_next_node(self, action):
         "Returns the node corresponding to action"
         try:
-            return self._children[action] 
+            return self._children[action]
         except KeyError:
             print("ERROR: Action hasn't been taken from current state.")
             self._children[action] = Node()
             return self._children[action]
 
-
-
     def __str__(self, level=0, val="init"):
-        ret ="\t"* level + "{}: {}\n".format(val, self._count)
-        for k,v in self._children.items():
+        ret = "\t" * level + "{}: {}\n".format(val, self._count)
+        for k, v in self._children.items():
             ret += v.__str__(level + 1, k)
         return ret
-
-

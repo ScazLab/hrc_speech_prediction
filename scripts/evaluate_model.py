@@ -2,15 +2,14 @@ import os
 
 import numpy as np
 import matplotlib.pyplot as plt
-
 from scipy.interpolate import spline
 
 from sklearn import metrics
+from sklearn.linear_model import SGDClassifier
 
 from hrc_speech_prediction import features
 from hrc_speech_prediction.data import (TrainData, TRAIN_PARTICIPANTS)
-from hrc_speech_prediction.models import (ContextFilterModel,
-                                          get_argument_parser)
+from hrc_speech_prediction.models import (ContextFilterModel, get_argument_parser)
 
 
 parser = get_argument_parser("Evaluate classifier")
@@ -154,11 +153,10 @@ class EvaluateModel(object):
         score = np.array(score)
 
         xnew = np.linspace(xaxis.min(), xaxis.max(), 1000)
-        score_smooth = spline(xaxis, score,xnew)
+        score_smooth = spline(xaxis, score, xnew)
 
         plt.plot(xnew, score_smooth)
         plt.show()
-
 
     def _evaluate_on(self, train_idx, test_idx, data_type):
         self.check_indices(train_idx, test_idx)
