@@ -1,9 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
-
 from hrc_speech_prediction import display_plots as dp
 
 class CombinedModel(object):
+
     def __init__(self,
                  speech_model,
                  root,
@@ -145,8 +145,18 @@ class CombinedModel(object):
         else:
             plt.show(block=False)
 
+
+        # create msg with probabilities
+        # publish msg
+        prob_pub.publish("test")
+
     def __str__(self):
         return self.root.__str__()
+
+if __name__ == '__main__':
+    cm = CombinedModel(Model(), "", "")
+    rospy.init_node('combined_model', anonymous=True)
+    rospy.spin()
 
 
 class Node(object):

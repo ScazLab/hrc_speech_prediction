@@ -61,7 +61,7 @@
     <param name="baxter_display/speech_duration"        value="16.0"/>
 
    <!--  <node pkg="human_robot_collaboration" type="baxter_display"    name="baxter_display"  output="screen"/> -->
-   <node pkg="hrc_speech_prediction" type="combined_model" name="combined_model" output="screen"/>
+   <node pkg="hrc_speech_prediction" type="display_plots" name="display_plots" output="screen"/>
 
     <!-- Text to Speech -->
     <!-- <include file="$(find svox_tts)/launch/svox_tts.launch" /> -->
