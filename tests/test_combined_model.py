@@ -1,15 +1,15 @@
-import numpy as np
 from sklearn.externals import joblib
 
 from unittest import TestCase
 
 from hrc_speech_prediction import combined_model as cm
+from hrc_speech_prediction.defaults import MODEL_PATH
 
 
 class TestCombinedModel(TestCase):
 
     def setUp(self):
-        model_path = "/home/jake/catkin_ws/src/hrc_speech_prediction/models/"
+        model_path = MODEL_PATH
 
         self.speech_model = joblib.load(model_path + "combined_model_0.150.15.pkl")
         self.vectorizer = joblib.load(model_path + "vocabulary.pkl")

@@ -7,6 +7,7 @@ import numpy as np
 from sklearn.externals import joblib
 
 from hrc_speech_prediction.data import ALL_ACTIONS
+from hrc_speech_prediction.defaults import DATA_PATH
 
 
 parser = argparse.ArgumentParser("Evaluate classifier on test data")
@@ -35,7 +36,7 @@ args = parser.parse_args()
 model = joblib.load(os.path.join(args.path, "model_{}.pkl".format(args.model)))
 vectorizer = joblib.load(os.path.join(args.path, "vocabulary.pkl"))
 
-with open(os.path.join(os.path.dirname(__file__), 'test_data.json')) as f:
+with open(os.path.join(DATA_PATH, 'test_data.json')) as f:
     d = json.load(f)
     d = OrderedDict([(p, d[p]) for p in sorted([pp for pp in d])])
 

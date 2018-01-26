@@ -5,6 +5,7 @@ import json
 import argparse
 from collections import OrderedDict
 
+from hrc_speech_prediction.defaults import DATA_PATH
 from hrc_speech_prediction.data import Trial, Session, TrainData
 from hrc_speech_prediction.bag_parsing import participant_bags, parse_bag
 
@@ -97,7 +98,7 @@ def _pairs_to_trial(pairs, name):
 
 def add_missing_trials_to_11(data):
     P11 = '11.BCA'
-    with open(os.path.join(os.path.dirname(__file__), 'P11.json')) as f:
+    with open(os.path.join(DATA_PATH, 'P11.json')) as f:
         d = json.load(f)
     session = data.data[P11]
     session.insert(0, _pairs_to_trial(d['B'], 'B'))

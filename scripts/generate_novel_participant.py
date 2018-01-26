@@ -3,16 +3,17 @@ import json
 import argparse
 
 from hrc_speech_prediction import data
+from hrc_speech_prediction.defaults import DATA_PATH
 
 parser = argparse.ArgumentParser("Create two new trials from 11.BCA's data")
 parser.add_argument('path', help='path to the experiment data',
                     default=os.path.curdir)
 
 
-d_actions  = ["leg_7", "top_2", "top_1", "chair_back", "screwdriver_1",
-              "foot_3", "leg_3", "foot_4", "leg_4", "foot_1", "leg_1",
-              "foot_2", "leg_2", "front_1", "front_3", "back_1", "back_2",
-              "seat", "leg_5", "leg_6"]
+d_actions = ["leg_7", "top_2", "top_1", "chair_back", "screwdriver_1",
+             "foot_3", "leg_3", "foot_4", "leg_4", "foot_1", "leg_1",
+             "foot_2", "leg_2", "front_1", "front_3", "back_1", "back_2",
+             "seat", "leg_5", "leg_6"]
 
 e_actions = ["screwdriver_1", "foot_2", "leg_2", "foot_4", "leg_4", "foot_3",
              "leg_3", "foot_1", "leg_1", "back_1", "back_2", "front_1",
@@ -20,7 +21,7 @@ e_actions = ["screwdriver_1", "foot_2", "leg_2", "foot_4", "leg_4", "foot_3",
              "top_1", "chair_back"]
 
 
-with open(os.path.join(os.path.dirname(__file__), 'P11.json')) as f:
+with open(os.path.join(DATA_PATH, 'P11.json')) as f:
     d = json.load(f)
 
 A = dict(d['A'])
