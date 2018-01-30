@@ -45,13 +45,12 @@ def _pairs_to_timed_actions_and_utterances(pairs):
             for p in pairs]
 
 
-_Trial = namedtuple('Trial', ['instruction', 'pairs', 'initial_time'])
+class Trial(object):
 
-
-class Trial(_Trial):
-
-    def __init__(self, *args, **kwargs):
-        super(Trial, self).__init__(*args, **kwargs)
+    def __init__(self, instruction, pairs, initial_time):
+        self.instruction = instruction
+        self.pairs = pairs
+        self.initial_time = initial_time
         self._first_id = None
 
     @property
