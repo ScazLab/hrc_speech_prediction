@@ -2,6 +2,9 @@
 import rospy
 import cv2 as cv
 import numpy as np
+import matplotlib.pyplot as plt
+import PIL
+from cStringIO import StringIO
 
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
@@ -25,44 +28,68 @@ class DisplayPlots(object):
 
     def display_plots(self):
 
-        # start with black mask
-        mask = np.zeros((600, 1024, 3), np.uint8)
-        # draw in white background
-        cv.rectangle(mask, (0,0), (1024, 600), (255, 255, 255), -1)
+        plt.ioff()
+        X = np.arange(len(self.both))
+        # fig, ax = plt.subplots(nrows=1, ncols=1)
+        fig = plt.figure(figsize=(12.84,5.81))
+        ax = fig.add_subplot(1, 1, 1)
 
-        # BGR colors that will be useful
-        red     = ( 44,  48, 201)
-        green   = ( 60, 160,  60)
-        yellow  = ( 60, 200, 200)
-        blue    = (200, 162,  77)
-        black   = (  0,   0,   0)
+        # Want to normalize 'both' probs for easier visual comparison
+        nrmlz = 1.0 / sum(self.both)
 
-        # other helpful settings
-        thickness = 3
-        fontFace = cv.FONT_HERSHEY_SIMPLEX
-        fontScale = 2
-        border = 20
-        max_width = 900
+        ax.bar(X - 0.2, self.speech, width=0.2, color='r', align='center')
+        ax.bar(X, self.context, width=0.2, color='b', align='center')
+        ax.bar(X + 0.2, self.both * nrmlz, width=0.2, color='g', align='center')
 
+        ax.legend(('Speech', 'Context', 'Both'))
 
-        title = self.utter
-        textSize = cv.getTextSize(title, fontFace, fontScale, thickness)
-        textOrg = ((1024 - textSize[0][0])/2, (600 + textSize[0][1])/6)
-        cv.putText(mask, title, textOrg, fontFace, fontScale, black, thickness, cv.CV_AA)
+        rects = ax.patches
+        max_prob = max(self.both * nrmlz)
 
-        # msg = CvBridge.CvImage()
-        # msg.encoding = sensor_msgs.image_encodings.BGR8
-        # msg.image = mask
-        # im_pub.Publish(msg.toImageMsg())
-        #
-        msg = self.bridge.cv2_to_imgmsg(mask, encoding="bgr8")
+        # This draws a star above most probable action
+        for r in rects:
+            if r.get_height() == max_prob:
+                ax.text(
+                    r.get_x() + r.get_width() / 2,
+                    r.get_height() * 1.01,
+                    '*',
+                    ha='center',
+                    va='bottom')
+
+        if self.actual:
+            ax.text(self.speech_model.actions.index(self.actual), max_prob, "$")
+
+        plt.xticks(X, self.speech_model.actions, rotation=60)
+        plt.title(self.utter)
+
+        buffer_ = StringIO()
+        plt.savefig(buffer_, format="png", bbox_inches='tight', pad_inches=.1)
+
+        buffer_.seek(0)
+
+        image = PIL.Image.open(buffer_)
+        ar = np.asarray(image)
+        colored = cv.cvtColor(ar, cv.COLOR_RGB2BGR)
+        # convert and publish image
+        msg = self.bridge.cv2_to_imgmsg(colored, "bgr8")
         try:
-            print("publishing")
-            # self.image_pub.publish(msg)
             rospy.sleep(1)
             self.image_pub.publish(msg)
         except CvBridgeError as e:
             print (e)
+
+        if self.save_path:
+            plt.savefig(self.save_path)
+        else:
+            plt.show(block=False)
+
+    def rotate(self, src, pt, angle):
+        rows = 600
+        cols = 1024
+        M = cv.getRotationMatrix2D(pt,angle,1)
+        dst = cv.warpAffine(src, M, (cols, rows))
+        return dst
+
 
 if __name__=='__main__':
     from sklearn.externals import joblib
@@ -71,14 +98,6 @@ if __name__=='__main__':
     model_path = "/home/scazlab/ros_devel_ws/src/hrc_speech_prediction/models/"
 
     combined_model = joblib.load(model_path + "combined_model_0.150.15.pkl")
-    # speech_model = cm.speech_model
-    # vectorizer = joblib.load(model_path + "vocabulary.pkl")
-
-    # combined_model = cm.CombinedModel(speech_model=speech_model, root=cm.Node(), vectorizer=vectorizer)
-    # co?mbined_model.add_branch(["foot_2"])
-    # combined_model.add_branch(["top_1"])
-    # combined_model.add_branch(["foot_2", "foot_1", "leg_1"])
-    # combined_model.add_branch(["chair_back", "seat", "back_1"])
 
     test_utter = "Pass me the blue piece with two red stripes"
 
