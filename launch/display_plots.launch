@@ -1,0 +1,3 @@
+<launch>
+    <node pkg="hrc_speech_prediction" type="display_plots.py" name="display_plots" output="screen" respawn="true"></node>
+</launch>

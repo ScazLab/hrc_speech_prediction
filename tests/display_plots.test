@@ -1,4 +1,0 @@
-<launch>
-    <node pkg="hrc_speech_prediction" type="display_plots" name="display_plots" />
-    <test test-name="combined_model" pkg="hrc_speech_prediction" type="test_display_plots" />
-</launch>
