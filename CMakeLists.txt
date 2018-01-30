@@ -12,8 +12,6 @@ project(hrc_speech_prediction)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
              human_robot_collaboration_msgs
-             std_msgs
-             message_generation
              rospy)
 
 ## System dependencies are found with CMake's conventions
@@ -71,10 +69,10 @@ catkin_python_setup()
 # )
 
 ## Generate added messages and services with any dependencies listed here
-generate_messages(
-  DEPENDENCIES
-  std_msgs  # Or other packages containing msgs
-)
+# generate_messages(
+#   DEPENDENCIES
+#   std_msgs  # Or other packages containing msgs
+# )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -108,7 +106,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES hrc_speech_prediction
- CATKIN_DEPENDS rospy std_msgs message_runtime
+#  CATKIN_DEPENDS other_catkin_pkg
 #  DEPENDS system_lib
 )
 
@@ -120,7 +118,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
 # include
-${catkin_INCLUDE_DIRS}
+# ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -162,10 +160,10 @@ ${catkin_INCLUDE_DIRS}
 
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
-install(PROGRAMS
-  scripts/display_plots.py
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
+# install(PROGRAMS
+#   scripts/my_python_script
+#   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+# )
 
 ## Mark executables and/or libraries for installation
 # install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}_node

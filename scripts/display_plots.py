@@ -1,33 +1,57 @@
 #!/usr/bin/env python
 import rospy
-import cv2
+import cv2 as cv
+import numpy as np
+import sensor_msgs
 
-from std_msgs.msg import String
-from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 
 class DisplayPlots(object):
 
-    def __init__(self):
-        self.image_pub = rospy.Publisher("/robot/xdisplay", Image, queue_size=10)
+    def __init__(self, speech_model, speech, context, both, utter, actual=None, save_path=None):
+
+
+        self.image_pub = rospy.Publisher("/robot/xdisplay", CvBridge.CvImage, queue_size=10)
 
         self.bridge = CvBridge()
-        self.prob_sub = rospy.Subscriber("/hrc_speech_pred/probabilities", String, self.display_plots)
 
-    def display_plots(self, data):
-        # make cv image
-        cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
+        self.speech_model = speech_model
+        self.speech = speech
+        self.context = context
+        self.both = both
+        self.utter = utter
+        self.actual = actual
+        self.save_path = save_path
 
-        cv2.imshow("Image window", cv_image)
-        cv2.waitKey(3)
+    def display_plots(self):
 
-        self.image_pub.publish(self.bridge.cv2_to_imgmsg(cv_image, "bgr8"))
+        # start with black mask
+        mask = np.zeros((600, 1024, 3), np.uint8)
+        # draw in white background
+        cv.rectangle(mask, (0,0), (600, 1024), (255, 255, 255), -1)
 
-def main():
-    dp = DisplayPlots()
-    rospy.init_node('display_plots', anonymous=True)
-    rospy.spin()
-    cv2.destroyAllWindows()
+        # BGR colors that will be useful
+        red     = cv.Scalar( 44,  48, 201)
+        green   = cv.Scalar( 60, 160,  60)
+        yellow  = cv.Scalar( 60, 200, 200)
+        blue    = cv.Scalar(200, 162,  77)
+        black   = cv.Scalar(  0,   0,   0)
 
-if __name__ == '__main__':
-    main()
+        # other helpful settings
+        thickness = 3
+        fontFace = cv.FONT_HERSHEY_SIMPLEX
+        fontScale = 2
+        border = 20
+        max_width = 900
+
+
+        title = utter
+        textSize = cv.getTextSize(utter, fontFace, fontScale, thickness)
+        textOrg = ((mask.cols - textSize.width)/2, (mask.rows + textSize.height)/6)
+        cv.putText(mask, title, textOrg, fontFace, fontScale, black, thickness, cv.CV_AA)
+
+        msg = CvBridge.CvImage()
+        msg.encoding = sensor_msgs.image_encodings.BGR8
+        msg.image = mask
+
+        im_pub.Publish(msg.toImageMsg())
