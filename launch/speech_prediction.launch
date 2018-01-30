@@ -60,8 +60,7 @@
     <!-- Parameter for speech pop up duration -->
     <param name="baxter_display/speech_duration"        value="16.0"/>
 
-   <!--  <node pkg="human_robot_collaboration" type="baxter_display"    name="baxter_display"  output="screen"/> -->
-   <!-- <node pkg="hrc_speech_prediction" type="hrc_speech_prediction" name="hrc_speech_prediction" output="screen"/> -->
+    <node pkg="human_robot_collaboration" type="baxter_display"    name="baxter_display"  output="screen"/>
 
     <!-- Text to Speech -->
     <!-- <include file="$(find svox_tts)/launch/svox_tts.launch" /> -->
