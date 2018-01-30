@@ -3,8 +3,12 @@ import matplotlib.pyplot as plt
 
 
 class CombinedModel(object):
-    def __init__(self, speech_model, root,
-                 vectorizer, speech_eps=0.15, context_eps=0.15):
+    def __init__(self,
+                 speech_model,
+                 root,
+                 vectorizer,
+                 speech_eps=0.15,
+                 context_eps=0.15):
         self.speech_model = speech_model
         self._vectorizer = vectorizer
 
@@ -14,7 +18,8 @@ class CombinedModel(object):
         self.root = root
         self._curr = self.root  # current node we are looking at
 
-        self._X_context = np.ones((len(self.speech_model.actions)), dtype='bool')
+        self._X_context = np.ones(
+            (len(self.speech_model.actions)), dtype='bool')
         self.actions = self.speech_model.actions
 
     @property
@@ -42,13 +47,13 @@ class CombinedModel(object):
         else:
             x_u = utter  # Then the input is an numpy array already
 
-        probs = self.speech_model._predict_proba(self._X_context[None, :], x_u)[0]
+        probs = self.speech_model._predict_proba(self._X_context[None, :],
+                                                 x_u)[0]
 
         return self._apply_eps(self._speech_eps, probs)
 
     def get_context_probs(self):
-        probs = self.curr._get_context_probs(self._context_eps,
-                                             self.actions)
+        probs = self.curr._get_context_probs(self._context_eps, self.actions)
 
         return self._apply_eps(self._context_eps, probs)
 
@@ -60,8 +65,11 @@ class CombinedModel(object):
     def pred_action(self, probs):
         return self.actions[np.argmax(probs)]
 
-    def take_action(self, model="both", utter=None,
-                    plot=False, return_probs=False):
+    def take_action(self,
+                    model="both",
+                    utter=None,
+                    plot=False,
+                    return_probs=False):
 
         context_probs = self.get_context_probs()
         if model == "context":
@@ -78,8 +86,7 @@ class CombinedModel(object):
         # self.curr = self.curr._get_next_node(action)
 
         if plot and model == "both":
-            self.plot_predicitions(speech_probs, context_probs,
-                                   probs, utter)
+            self.plot_predicitions(speech_probs, context_probs, probs, utter)
         if return_probs and model == "both":
             return action, speech_probs, context_probs, probs
         else:
@@ -88,10 +95,16 @@ class CombinedModel(object):
     def reset(self):
         self._curr = self.root
 
-    def plot_predicitions(self, speech, context, both, utter,
-                          actual=None, save_path=None):
+    def plot_predicitions(self,
+                          speech,
+                          context,
+                          both,
+                          utter,
+                          actual=None,
+                          save_path=None):
         "Plots the probabilities for each possible action provided by speech, \
         context, and speech + context "
+
         X = np.arange(len(both))
         fig, ax = plt.subplots(nrows=1, ncols=1)
 
@@ -110,8 +123,12 @@ class CombinedModel(object):
         # This draws a star above most probable action
         for r in rects:
             if r.get_height() == max_prob:
-                ax.text(r.get_x() + r.get_width() / 2,
-                        r.get_height() * 1.01, '*', ha='center', va='bottom')
+                ax.text(
+                    r.get_x() + r.get_width() / 2,
+                    r.get_height() * 1.01,
+                    '*',
+                    ha='center',
+                    va='bottom')
 
         if actual:
             ax.text(self.speech_model.actions.index(actual), max_prob, "$")
@@ -129,7 +146,6 @@ class CombinedModel(object):
 
 
 class Node(object):
-
     def __init__(self):
         "A state in a task trajectory"
         self._count = 0.0
@@ -158,12 +174,13 @@ class Node(object):
 
     def add_branch(self, actions):
         if not actions:  # list is empty
+            self.increment_count()
             return self
 
         action = actions.pop(0)
         c = self.get_or_create_node(action)
 
-        c._increment_count().add_branch(actions)
+        c.add_branch(actions)
 
     def _get_context_probs(self, eps, actions):
         "Returns probabilities for taking each child action based \
@@ -171,11 +188,10 @@ class Node(object):
 
         s = 1.0 / (self.sum_children_counts + .00001)
 
-        return np.array(
-            [self._children[k]._count * s
-             if k in self.seen_children else 0.0
-             for k in actions]
-        )
+        return np.array([
+            self._children[k]._count * s if k in self.seen_children else 0.0
+            for k in actions
+        ])
 
     def _get_next_node(self, action):
         "Returns the node corresponding to action"
