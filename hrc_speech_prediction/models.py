@@ -6,6 +6,7 @@ import numpy as np
 from sklearn.preprocessing import normalize
 
 from hrc_speech_prediction import context_model
+from hrc_speech_prediction.speech_model import SpeechModel
 
 
 def get_argument_parser(description=None):
@@ -22,94 +23,7 @@ def get_path_from_cli_arguments(description=None):
     return get_argument_parser(description=description).parse_args().path
 
 
-class BaseModel(object):
-    def __init__(self,
-                 predictor,
-                 context_actions,
-                 features="both",
-                 randomize_context=None):
-        self.model = predictor
-        self.actions = context_actions
-        self.actions_idx = {a: i for i, a in enumerate(context_actions)}
-        self.features = features
-        self.randomize_context = randomize_context
-
-    @property
-    def n_actions(self):
-        return len(self.actions)
-
-    def _transform_labels(self, labels):
-        return [self.actions_idx[l] for l in labels]
-
-    def _get_X(self, X_context, X_speech):
-        assert (X_context.shape[1] == self.n_actions)
-        if self.features == 'context':
-            return X_context
-        elif self.features == 'speech':
-            return X_speech.toarray()
-        elif self.features == 'both':
-            return np.concatenate([X_context, X_speech.toarray()], axis=1)
-
-    def _predict_proba(self, X_context, X_speech):
-        p = np.zeros((X_context.shape[0], self.n_actions))
-        p[:, self.model.classes_.tolist()] = self.model.predict_proba(
-            self._get_X(X_context, X_speech))
-        return p
-
-    def fit(self,
-            X_context,
-            X_speech,
-            labels,
-            sample_weight=None,
-            online=False):
-        X = self._get_X(X_context, X_speech)
-        if self.randomize_context:
-            Xc = X_context.copy()
-            np.random.shuffle(Xc)
-            Xr = self._get_X(Xc, X_speech)
-            weights = np.ones((X.shape[0])) if sample_weight is None \
-                else sample_weight
-            sample_weight = np.concatenate((weights,
-                                            self.randomize_context * weights))
-            X = np.concatenate((X, Xr), axis=0)
-            labels = np.concatenate((labels, labels))
-        if online:
-            lbls = self._transform_labels(labels)
-            for i in range(0, X.shape[0]):
-                self.model.partial_fit(
-                    X[i, :].reshape(1, -1), [lbls[i]],
-                    sample_weight=[sample_weight[i]],
-                    classes=np.unique(lbls))
-        else:
-            self.model.fit(
-                X, self._transform_labels(labels), sample_weight=sample_weight)
-        return self
-
-    def partial_fit(self, X_context, X_speech, labels, classes):
-        X = self._get_X(X_context, X_speech)
-        lbls = self._transform_labels(labels)
-        clsses = self._transform_labels(classes)
-        self.model.partial_fit(X, lbls, classes=clsses)
-        return self
-
-    def predict(self, X_context, X_speech, exclude=[]):
-        if exclude:
-            raise NotImplementedError  # TODO
-        return [
-            self.actions[i]
-            for i in self.model.predict(self._get_X(X_context, X_speech))
-        ]
-
-    @classmethod
-    def model_generator(cls, predictor_class, **predictor_args):
-        def f(context_actions, **kwargs):
-            return cls(
-                predictor_class(**predictor_args), context_actions, **kwargs)
-
-        return f
-
-
-class ContextFilterModel(BaseModel):
+class ContextFilterModel(SpeechModel):
     def predict(self, X_context, X_speech, exclude=[]):
         excl = np.ones(X_context.shape)
         excl[:, [self.actions_idx[a] for a in exclude]] = 0
@@ -166,6 +80,7 @@ class CombinedModel(object):
 
         self.model_generator = model_generator
         self._vectorizer = vectorizer
+
         self.context_model = context_model.ContextTreeModel(
             self.actions, eps=context_eps)
         self.speech_model = None
@@ -178,37 +93,18 @@ class CombinedModel(object):
             self.actions, features="speech").fit(
                 self._X_context, speech, actions, sample_weight=None)
 
-    def add_branch(self, list_of_actions):
-        return self.root.add_branch(list_of_actions)
+    def partial_fit(self, ctxt, speech, action):
+        x_u = self._vectorizer.transform([speech])
 
-    def get_speech_probs(self, utter):
-        "Takes a speech utterance and returns probabilities for each \
-            possible action on the speech model alone"
+        self.context_model.fit(ctxt, action)
 
-        if isinstance(utter, str):
-            x_u = self._vectorizer.transform([utter])
+        if self.speech_model:
+            self.speech_model.partial_fit(self._X_context, x_u, action,
+                                          self.actions)
         else:
-            x_u = utter  # Then the input is an numpy array already
-
-        print("hi", self._X_context[None, :].shape)
-        probs = self.speech_model._predict_proba(self._X_context, x_u)[0]
-
-        return self._apply_eps(self._speech_eps, probs)
-
-    def get_context_probs(self, cntxt):
-        curr = self.context_model.curr(cntxt)
-        print(cntxt, curr)
-        probs = curr._get_context_probs(self._context_eps, self.actions)
-
-        return self._apply_eps(self._context_eps, probs)
-
-    def _apply_eps(self, eps, p):
-        u = np.array([1.0 / len(self.actions) for i in self.actions])
-
-        return (1.0 - eps) * p + (u * eps)
-
-    def get_probable_action(self, probs):
-        return self.actions[np.argmax(probs)]
+            self.speech_model = self.model_generator(
+                self.actions, features="speech").partial_fit(
+                    self._X_context, x_u, action, classes=self.actions)
 
     def predict(self,
                 cntxt,
@@ -238,6 +134,33 @@ class CombinedModel(object):
             return action, speech_probs, context_probs, probs
         else:
             return action, probs
+
+    def get_speech_probs(self, utter):
+        "Takes a speech utterance and returns probabilities for each \
+            possible action on the speech model alone"
+
+        if isinstance(utter, str):
+            x_u = self._vectorizer.transform([utter])
+        else:
+            x_u = utter  # Then the input is an numpy array already
+
+        probs = self.speech_model._predict_proba(self._X_context, x_u)[0]
+
+        return self._apply_eps(self._speech_eps, probs)
+
+    def get_context_probs(self, cntxt):
+        curr = self.context_model.curr(cntxt)
+        probs = curr._get_context_probs(self._context_eps, self.actions)
+
+        return self._apply_eps(self._context_eps, probs)
+
+    def _apply_eps(self, eps, p):
+        u = np.array([1.0 / len(self.actions) for i in self.actions])
+
+        return (1.0 - eps) * p + (u * eps)
+
+    def get_probable_action(self, probs):
+        return self.actions[np.argmax(probs)]
 
     def plot_predicitions(self,
                           speech,
