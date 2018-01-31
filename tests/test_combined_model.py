@@ -54,10 +54,6 @@ class TestCombinedModel(TestCase):
             ALL_ACTIONS,
             speech_eps=0.15,
             context_eps=0.15)
-        # self.combined_model.add_branch(["foot_2"])
-        # self.combined_model.add_branch(["top_1"])
-        # self.combined_model.add_branch(["foot_2", "foot_1", "leg_1"])
-        # self.combined_model.add_branch(["chair_back", "seat", "back_1"])
 
         self.test_utter = "The green piece with two black stripes"
         self.test_cntxt = []
