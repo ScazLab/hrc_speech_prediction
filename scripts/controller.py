@@ -8,7 +8,8 @@ import numpy as np
 from sklearn.externals import joblib
 
 import rospy
-from hrc_speech_prediction.models import combined_model as cm
+from hrc_speech_prediction.models import CombinedModel as cm
+from human_robot_collaboration import train_models as train
 from human_robot_collaboration.controller import BaseController
 from std_msgs.msg import String
 
@@ -91,6 +92,8 @@ class SpeechPredictionController(BaseController):
     def __init__(self,
                  path,
                  model='both',
+                 speech_eps=0.15,
+                 context_eps=0.15,
                  timer_path=None,
                  debug=False,
                  **kwargs):
@@ -102,12 +105,10 @@ class SpeechPredictionController(BaseController):
             recovery=True,
             timer_path=os.path.join(path, timer_path),
             **kwargs)
-        # if debug:
-        #  self.model = DummyPredictor(list(self.OBJECT_DICT.keys()))
-        #  self.vectorizer = self.model
-        #  self.actions_in_context = self.model.obj
-        model_path = os.path.join(path, "model_{}.pkl".format(model))
-        self.model = joblib.load(model_path)
+        # model_path = os.path.join(path, "model_{}.pkl".format(model))
+        # self.model = joblib.load(model_path)
+        self.model = train.train_combined_model(
+            speech_eps, context_eps, fit_type="incremental")
         # utterance vectorizer
         vectorizer_path = os.path.join(path, "vocabulary.pkl")
         combined_model_path = os.path.join(path, "combined_model_0.150.15.pkl")
@@ -115,11 +116,15 @@ class SpeechPredictionController(BaseController):
         self.combined_model = joblib.load(combined_model_path)
         # actions in order of context vector
         self.actions_in_context = self.model.actions
+        # List of successful actions taken, this is used to
+        # train contextModel
+        self.action_history = []
         # Subscriber to web topic to update context on repeated fail
         rospy.Subscriber(self.WEB_TOPIC, String, self._web_interface_cb)
         self._debug = debug
         self._ctxt_lock = Lock()
-        self.context = np.ones((len(self.actions_in_context)), dtype='bool')
+        self.X_dummy_cntx = np.ones(
+            (len(self.actions_in_context)), dtype='bool')
 
     def _run(self):
         self.timer.start()
@@ -134,10 +139,10 @@ class SpeechPredictionController(BaseController):
                     'Skipping utterance (too short): {}'.format(utterance))
             else:
                 #x_u = self.vectorizer.transform([utterance])
-                action, _ = self.combined_model.take_action(
-                    utter=utterance, plot=self._debug)
+                action, _ = self.combined_model.predict(
+                    self.action_history, utter=utterance, plot=self._debug)
                 # with self._ctxt_lock:
-                #     ctxt = self.context.copy()
+                #     ctxt = self.X_dummy_cntx.copy()
                 #     action = self.model.predict(ctxt[None, :], x_u,
                 #                                 exclude=self.wrong_actions)[0]
                 message = "Taking action {} for \"{}\"".format(
@@ -145,9 +150,10 @@ class SpeechPredictionController(BaseController):
                 rospy.loginfo(message)
                 self.timer.log(message)
                 if self.take_action(action):
-                    self.combined_model.curr = action
-
-                    #self._update_context(action)
+                    self.action_history.append(action)
+                    # Learn on successful action taken
+                    self.combined_model.partial_fit(self.action_history,
+                                                    utterance, action)
 
     def take_action(self, action):
         side, obj = self.OBJECT_DICT[action]
@@ -188,10 +194,10 @@ class SpeechPredictionController(BaseController):
 
     def _update_context(self, action):
         with self._ctxt_lock:
-            self.context[self.actions_in_context.index(action)] = 0
+            self.X_dummy_cntx[self.actions_in_context.index(action)] = 0
             message = 'New context: {}'.format(" ".join([
                 self._short_action(self.actions_in_context[i])
-                for i in self.context.nonzero()[0]
+                for i in self.X_dummy_cntx.nonzero()[0]
             ]))
         self.timer.log(message)
         rospy.loginfo(message)
