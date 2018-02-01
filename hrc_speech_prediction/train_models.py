@@ -7,7 +7,7 @@ from scipy import sparse
 from sklearn.externals import joblib
 from sklearn.linear_model import LogisticRegression, SGDClassifier
 
-from hrc_speech_predicition import defaults
+from hrc_speech_prediction import defaults
 from hrc_speech_prediction.data import (ALL_ACTIONS, TRAIN_PARTICIPANTS,
                                         TrainData)
 from hrc_speech_prediction.features import (get_bow_features,
@@ -43,6 +43,7 @@ def train_combined_model(speech_eps, context_eps, fit_type="incremental"):
     ADD_LAST_ACTION = True
 
     path = defaults.DATA_PATH
+    print("PATH: ", os.path.join(path, "train.json"))
 
     data = TrainData.load(os.path.join(path, "train.json"))
 
@@ -52,7 +53,7 @@ def train_combined_model(speech_eps, context_eps, fit_type="incremental"):
     ]
 
     # Get features
-    train_context, labels = format_cntxt_indices(data, )
+    train_context, labels = format_cntxt_indices(data, train_ids_by_trial)
     X_speech, vectorizer = get_bow_features(
         data, tfidf=TFIDF, n_grams=N_GRAMS, max_features=None)
     X_speech = X_speech[flat_train_ids, :]
@@ -64,7 +65,7 @@ def train_combined_model(speech_eps, context_eps, fit_type="incremental"):
 
     combined_model = CombinedModel(
         vectorizer=vectorizer,
-        model_gen=model_gen,
+        model_generator=model_gen,
         actions=ALL_ACTIONS,
         speech_eps=speech_eps,
         context_eps=context_eps)

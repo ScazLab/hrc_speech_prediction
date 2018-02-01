@@ -9,7 +9,7 @@ from sklearn.externals import joblib
 
 import rospy
 from hrc_speech_prediction.models import CombinedModel as cm
-from human_robot_collaboration import train_models as train
+from hrc_speech_prediction import train_models as train
 from human_robot_collaboration.controller import BaseController
 from std_msgs.msg import String
 
@@ -107,8 +107,10 @@ class SpeechPredictionController(BaseController):
             **kwargs)
         # model_path = os.path.join(path, "model_{}.pkl".format(model))
         # self.model = joblib.load(model_path)
+        rospy.loginfo("Training model...")
         self.model = train.train_combined_model(
             speech_eps, context_eps, fit_type="incremental")
+        rospy.loginfo("Model training COMPLETED")
         # utterance vectorizer
         vectorizer_path = os.path.join(path, "vocabulary.pkl")
         combined_model_path = os.path.join(path, "combined_model_0.150.15.pkl")

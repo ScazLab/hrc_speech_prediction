@@ -94,7 +94,12 @@ class CombinedModel(object):
                 self._X_context, speech, actions, sample_weight=None)
 
     def partial_fit(self, ctxt, speech, action):
-        x_u = self._vectorizer.transform([speech])
+
+        if isinstance(speech, str):
+            x_u = self._vectorizer.transform([speech])
+        else:
+            x_u = speech  # Then the input is an numpy array already
+
 
         self.context_model.fit(ctxt, action)
 
