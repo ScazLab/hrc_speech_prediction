@@ -38,8 +38,8 @@ def format_cntxt_indices(data, indices):
 
 
 def train_combined_model(speech_eps, context_eps, fit_type="incremental"):
-    TFIDF = False
-    N_GRAMS = (1, 2)
+    TFIDF = True
+    N_GRAMS = (1, 1)
     ADD_LAST_ACTION = True
 
     path = defaults.DATA_PATH

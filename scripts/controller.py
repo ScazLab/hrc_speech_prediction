@@ -139,7 +139,6 @@ class SpeechPredictionController(BaseController):
                 rospy.loginfo(
                     'Skipping utterance (too short): {}'.format(utterance))
             else:
-                #x_u = self.vectorizer.transform([utterance])
                 action, _ = self.combined_model.predict(
                     self.action_history, utter=utterance, plot=self._debug)
                 # with self._ctxt_lock:
@@ -151,10 +150,12 @@ class SpeechPredictionController(BaseController):
                 rospy.loginfo(message)
                 self.timer.log(message)
                 if self.take_action(action):
-                    self.action_history.append(action)
                     # Learn on successful action taken
-                    self.combined_model.partial_fit([self.action_history],
-                                                    utterance, [action])
+                    # self.combined_model.partial_fit([self.action_history],
+                    #                                 utterance, [action])
+                    print("ACTION HIST", self.action_history)
+                    self.action_history.append(action)
+                    print("ACTION HIST UPDATED", self.action_history)
 
     def take_action(self, action):
         side, obj = self.OBJECT_DICT[action]
