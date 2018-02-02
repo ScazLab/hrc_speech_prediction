@@ -2,8 +2,6 @@ import os
 import argparse
 
 import numpy as np
-from scipy.interpolate import spline
-import matplotlib.pyplot as plt
 from sklearn import metrics
 
 from hrc_speech_prediction import features
@@ -115,33 +113,30 @@ class Evaluation(object):
         self.evaluate_cross_validation()
         self.evaluate_on_new_participant()
 
-    def evaluate_incremental_learning(self):
-        classes = np.unique((self.data.labels))
-        score = []
+    def evaluate_incremental_learning(self, shuffle=True):
+        indices = list(self.data.ids)
+        if shuffle:
+            np.random.shuffle(indices)
+        Xs = self.get_Xs(indices)
+        Y = self.get_labels(indices)
+        return {
+            m: self._evaluate_incremental_learning_on_model(
+                Xs, Y, self._variations[m])
+            for m in self._variations}
+
+    def _generate_model(self, model_params):
+        return self.model_gen(self.context_actions, randomize_context=.25,
+                              **model_params)
+
+    def _evaluate_incremental_learning_on_model(self, Xs, Y, model_params):
+        classes = set(self.data.labels)
+        scores = []
+        model = self._generate_model(model_params)
         for i in range(0, self.X_context.shape[0] - 1):
-            # Train set
-            train_X = self.get_Xs([i])
-            train_Y = self.get_labels([i])
-            # Test set
-            test_X = self.get_Xs([i + 1])
-            test_Y = self.get_labels([i + 1])
-            model = self.model_gen(
-                self.context_actions,
-                randomize_context=.25
-            ).partial_fit(train_X[0], train_X[1], train_Y, classes)
-            prediction = model.predict(*test_X)
-            score.append(metrics.accuracy_score(
-                test_Y, prediction, normalize=True, sample_weight=None))
-
-        print(score)
-        xaxis = np.array([i for i in range(0, self.X_context.shape[0] - 1)])
-        score = np.array(score)
-
-        xnew = np.linspace(xaxis.min(), xaxis.max(), 1000)
-        score_smooth = spline(xaxis, score, xnew)
-
-        plt.plot(xnew, score_smooth)
-        plt.show()
+            model.partial_fit(Xs[0][[i], :], Xs[1][[i], :], [Y[i]], classes)
+            prediction = model.predict(Xs[0][[i + 1], :], Xs[1][[i + 1], :])
+            scores.append(prediction[0] == Y[i + 1])
+        return scores
 
     @property
     def _variations(self):
@@ -164,10 +159,8 @@ class Evaluation(object):
         test_Xs = self.get_Xs(test_idx)
         test_Y = self.get_labels(test_idx)
         # Train
-        model = self.model_gen(self.context_actions,
-                               randomize_context=.25,
-                               **model_params
-                               ).fit(train_Xs[0], train_Xs[1], train_Y)
+        model = self._generate_model(model_params).fit(
+            train_Xs[0], train_Xs[1], train_Y)
         # Evaluate
         prediction = model.predict(*test_Xs)
         return metrics.accuracy_score(
