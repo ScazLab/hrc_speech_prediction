@@ -2,16 +2,12 @@
 
 import os
 
-import numpy as np
-from scipy import sparse
-from sklearn.externals import joblib
-from sklearn.linear_model import LogisticRegression, SGDClassifier
+from sklearn.linear_model import SGDClassifier
 
 from hrc_speech_prediction import defaults
 from hrc_speech_prediction.data import (ALL_ACTIONS, TRAIN_PARTICIPANTS,
                                         TrainData)
-from hrc_speech_prediction.features import (get_bow_features,
-                                            get_context_features)
+from hrc_speech_prediction.features import get_bow_features
 from hrc_speech_prediction.models import CombinedModel
 from hrc_speech_prediction.speech_model import SpeechModel
 
@@ -40,7 +36,6 @@ def format_cntxt_indices(data, indices):
 def train_combined_model(speech_eps, context_eps, fit_type="incremental"):
     TFIDF = True
     N_GRAMS = (1, 1)
-    ADD_LAST_ACTION = True
 
     path = defaults.DATA_PATH
     print("PATH: ", os.path.join(path, "train.json"))
@@ -57,8 +52,6 @@ def train_combined_model(speech_eps, context_eps, fit_type="incremental"):
     X_speech, vectorizer = get_bow_features(
         data, tfidf=TFIDF, n_grams=N_GRAMS, max_features=None)
     X_speech = X_speech[flat_train_ids, :]
-
-    features = "speech"
 
     model_gen = SpeechModel.model_generator(
         SGDClassifier, loss='log', average=True, penalty='l2')
