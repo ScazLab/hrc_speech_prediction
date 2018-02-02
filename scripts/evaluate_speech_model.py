@@ -25,11 +25,14 @@ speech_model_gen = JointModel.model_generator(
     SGDClassifier,
     loss='log', average=True, penalty='l2', alpha=.0002)
 
-ev = Evaluation(speech_model_gen, working_path, n_grams=N_GRAMS, tfidf=TFIDF)
+ev = Evaluation(speech_model_gen, working_path, n_grams=N_GRAMS, tfidf=TFIDF,
+                model_variations={'speech': {'features': 'speech'}})
+ev.evaluate_all()
 classes = list(set(ev.data.labels))
 utterances = list(ev.data.utterances)
-digits = int(np.math.log10(len(utterances)))
+digits = int(np.ceil(np.math.log10(len(utterances))))
 
+fig = plt.figure()
 for tst in TRAIN_PARTICIPANTS:
     train_idx = [i for p in TRAIN_PARTICIPANTS
                  for i in list(ev.data.data[p].ids)
@@ -43,10 +46,9 @@ for tst in TRAIN_PARTICIPANTS:
     probas = model._predict_proba(*ev.get_Xs(test_idx))
     labels = ev.get_labels(train_idx)
     for i, p in enumerate(probas):
-        fig = plt.figure()
         plot_predict_proba(p[None, :], classes, utterances[test_idx[i]],
                            truth=labels[i])
         fig.tight_layout()
         plt.savefig(os.path.join(fig_path,
                     "fig.{:0{digits}d}.png".format(test_idx[i], digits=digits)))
-        plt.clf()
+        fig.clf()
