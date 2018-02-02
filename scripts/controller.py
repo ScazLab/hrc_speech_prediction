@@ -8,8 +8,8 @@ import numpy as np
 from sklearn.externals import joblib
 
 import rospy
-from hrc_speech_prediction.models import CombinedModel as cm
 from hrc_speech_prediction import train_models as train
+from hrc_speech_prediction.models import CombinedModel as cm
 from human_robot_collaboration.controller import BaseController
 from std_msgs.msg import String
 
@@ -108,16 +108,15 @@ class SpeechPredictionController(BaseController):
         # model_path = os.path.join(path, "model_{}.pkl".format(model))
         # self.model = joblib.load(model_path)
         rospy.loginfo("Training model...")
-        self.model = train.train_combined_model(
+        self.combined_model = train.train_combined_model(
             speech_eps, context_eps, fit_type="incremental")
         rospy.loginfo("Model training COMPLETED")
         # utterance vectorizer
         vectorizer_path = os.path.join(path, "vocabulary.pkl")
         combined_model_path = os.path.join(path, "combined_model_0.150.15.pkl")
         self.vectorizer = joblib.load(vectorizer_path)
-        self.combined_model = joblib.load(combined_model_path)
         # actions in order of context vector
-        self.actions_in_context = self.model.actions
+        self.actions_in_context = self.combined_model.actions
         # List of successful actions taken, this is used to
         # train contextModel
         self.action_history = []
@@ -154,8 +153,8 @@ class SpeechPredictionController(BaseController):
                 if self.take_action(action):
                     self.action_history.append(action)
                     # Learn on successful action taken
-                    self.combined_model.partial_fit(self.action_history,
-                                                    utterance, action)
+                    self.combined_model.partial_fit([self.action_history],
+                                                    utterance, [action])
 
     def take_action(self, action):
         side, obj = self.OBJECT_DICT[action]
