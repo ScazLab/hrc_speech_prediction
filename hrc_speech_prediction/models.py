@@ -194,7 +194,6 @@ class CombinedModel(object):
         else:
             x_u = speech  # Then the input is an numpy array already
 
-
         self.context_model.fit(ctxt, action)
 
         if self.speech_model:
