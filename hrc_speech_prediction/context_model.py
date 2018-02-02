@@ -58,12 +58,12 @@ class Node(object):
         if not cntxt:
             return self
 
-        c = cntxt.pop(0)
+        c = cntxt[0]
 
         if c not in self.seen_children:
             self._children[c] = Node()
 
-        return self._children[c].get_or_add_node(cntxt)
+        return self._children[c].get_or_add_node(cntxt[1:])
 
     def add_branch(self, cntxt):
         c = self.get_or_add_node(cntxt)
@@ -81,15 +81,6 @@ class Node(object):
             self._children[k]._count * s if k in self.seen_children else 0.0
             for k in actions
         ])
-
-    def get_curr_node(self, cntxt):
-        if not cntxt:
-            return self
-        try:
-            node = self._children[cntxt.pop(0)]
-            node.get_curr_node(cntxt)
-        except KeyError:
-            print("Error, incorrect context given!")
 
     def __str__(self, level=0, val="init"):
         ret = "\t" * level + "{}: {}\n".format(val, self._count)
