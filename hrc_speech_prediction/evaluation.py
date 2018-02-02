@@ -79,7 +79,7 @@ class Evaluation(object):
             results[tst] = self._evaluate_each_model_on(train_idx, test_idx)
         self._print_result_table(results, "Instruction")
 
-    def cross_validation(self):
+    def evaluate_cross_validation(self):
         """
         10-fold cross validation
         """
@@ -95,28 +95,25 @@ class Evaluation(object):
             results.append(self._evaluate_each_model_on(train_idx, test_idx))
         self._print_result_table(dict(enumerate(results)), '10-fold CV')
 
-    def new_participant(self):
-        print("Testing on pilot participant...")
+    def evaluate_on_new_participant(self):
+        print("Testing on pilot participant(s)...")
         results = {}
         trials = ["A", "D", "T"]
+        train_idx = [i for p in TRAIN_PARTICIPANTS
+                     for i in list(self.data.data[p].ids)]
         for t in trials:
-            train_idx = [
-                i for p in TRAIN_PARTICIPANTS for i in self.data.data[p].ids
-            ]
-            test_idx = [
-                i
-                for part in self.test_participants
-                for trial in self.data.data[part] for i in trial.ids
-                if t == trial.instruction
-            ]
+            test_idx = [i for part in self.test_participants
+                        for trial in self.data.data[part] for i in trial.ids
+                        if t == trial.instruction
+                        ]
             results[t] = self._evaluate_each_model_on(train_idx, test_idx)
         self._print_result_table(results, 'Instruction')
 
     def evaluate_all(self):
         self.evaluate_on_one_participant()
         self.evaluate_on_one_trial()
-        self.cross_validation()
-        self.new_participant()
+        self.evaluate_cross_validation()
+        self.evaluate_on_new_participant()
 
     def evaluate_incremental_learning(self):
         classes = np.unique((self.data.labels))
