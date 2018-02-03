@@ -50,7 +50,10 @@ class JointModel(object):
         return [self.actions_idx[l] for l in labels]
 
     def _get_X(self, X_context, X_speech):
-        assert (X_context.shape[1] == self.n_actions)
+        if X_context.shape[1] != self.n_actions:
+            raise ValueError(
+                "Incorrect context shape: {} instead of {}".format(
+                    X_context.shape[1], self.n_actions))
         if self.features == 'context':
             return X_context
         elif self.features == 'speech':

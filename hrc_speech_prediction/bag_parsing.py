@@ -36,7 +36,10 @@ class ActionDetector(object):
 
     def new_state(self, m):
         if m.message.object:
-            assert(m.message.action == 'get_pass')
+            if m.message.action != 'get_pass':
+                raise ValueError(
+                    "Incorrect action: '{}': expecting 'get_pass'".format(
+                        m.message.action))
             if m.message.state == 'WORKING':
                 if (self.state == self.WORKING and
                         self.current != m.message.object):

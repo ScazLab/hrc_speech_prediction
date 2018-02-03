@@ -42,7 +42,8 @@ def merge_duplicate_in_8(data):
     # BBC -> BC
     P8 = '8.BCA'
     session = data.data[P8]
-    assert(session[0].instruction == 'B' and session[1].instruction == 'B')
+    if session[0].instruction != 'B' or session[1].instruction != 'B':
+        raise ValueError("Unexpected data.")
     delta = session[1].initial_time - session[0].initial_time
 
     def update_times(x, ts, te):
@@ -86,7 +87,8 @@ def rename_wrong_actions_in_first_sessions(data):
 def remove_initial_utterance_in_12_3(data):
     P12 = '12.CAB'
     session = data.data[P12]
-    assert(session[2].pairs[0][1][0].startswith('scary scary'))
+    if not session[2].pairs[0][1][0].startswith('scary scary'):
+        raise ValueError("This is not the expected data")
     session[2].pairs[0][1].pop(0)
 
 

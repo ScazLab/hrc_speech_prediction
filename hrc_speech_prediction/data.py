@@ -123,7 +123,8 @@ class Session(list):
 
     @classmethod
     def deserialize(cls, lst):
-        assert(all([len(t) == 3 for t in lst]))
+        if any([len(t) != 3 for t in lst]):
+            raise ValueError("Wrong data size.")
         return cls([Trial(instruction=t[0],
                           pairs=_pairs_to_timed_actions_and_utterances(t[1]),
                           initial_time=t[2])

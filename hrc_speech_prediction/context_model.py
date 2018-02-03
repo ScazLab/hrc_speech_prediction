@@ -13,7 +13,8 @@ class ContextTreeModel(object):
         return self.root.get_or_add_node(cntxt)
 
     def fit(self, ctxts, acts):
-        assert (len(ctxts) == len(acts))
+        if len(ctxts) != len(acts):
+            raise ValueError("Context and action sizes not matching.")
         for c, a in zip(ctxts, acts):
             self.root.add_branch(c + [a])
 

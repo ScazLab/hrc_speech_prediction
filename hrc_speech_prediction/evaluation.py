@@ -38,7 +38,8 @@ class Evaluation(object):
         return [list(self.data.labels)[i] for i in indices]
 
     def check_indices(self, train_idx, test_idx):
-        assert (not set(train_idx).intersection(test_idx))
+        if set(train_idx).intersection(test_idx):
+            raise ValueError("Train and test sets are not disjoint.")
 
     def evaluate_on_one_participant(self):
         """
