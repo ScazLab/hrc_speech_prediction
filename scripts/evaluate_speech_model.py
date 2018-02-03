@@ -14,16 +14,21 @@ from hrc_speech_prediction.plots import plot_predict_proba
 
 N_GRAMS = (1, 2)
 TFIDF = False
-
+MODEL_PARAMS = {
+    'loss': 'log',
+    'average': True,
+    'penalty': 'l2',
+    'alpha': .04,
+    'max_iter': 100,
+    'tol': 1.e-3,
+}
 
 working_path = get_path_from_cli_arguments()
 fig_path = os.path.join(working_path, 'figs')
 if not os.path.isdir(fig_path):
     os.mkdir(fig_path)
 
-speech_model_gen = JointModel.model_generator(
-    SGDClassifier,
-    loss='log', average=True, penalty='l2', alpha=.0002)
+speech_model_gen = JointModel.model_generator(SGDClassifier, **MODEL_PARAMS)
 
 ev = Evaluation(speech_model_gen, working_path, n_grams=N_GRAMS, tfidf=TFIDF,
                 model_variations={'speech': {'features': 'speech'}})
