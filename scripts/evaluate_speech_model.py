@@ -18,7 +18,7 @@ MODEL_PARAMS = {
     'loss': 'log',
     'average': True,
     'penalty': 'l2',
-    'alpha': .04,
+    'alpha': .02,
     'max_iter': 100,
     'tol': 1.e-3,
 }
@@ -37,6 +37,7 @@ classes = list(set(ev.data.labels))
 utterances = list(ev.data.utterances)
 digits = int(np.ceil(np.math.log10(len(utterances))))
 
+plt.set_cmap('Blues')
 fig = plt.figure()
 for tst in TRAIN_PARTICIPANTS:
     train_idx = [i for p in TRAIN_PARTICIPANTS
@@ -57,3 +58,38 @@ for tst in TRAIN_PARTICIPANTS:
         plt.savefig(os.path.join(fig_path,
                     "fig.{:0{digits}d}.png".format(test_idx[i], digits=digits)))
         fig.clf()
+
+
+N = 3  # Train N models on all data
+models = [
+    speech_model_gen(ev.context_actions, features='speech').fit(
+        ev.X_context, ev.X_speech, ev.data.labels)
+    for _ in range(N)]
+
+TEST_SENTENCES = [
+    "",
+    "Give me the",
+    "Baxter",
+    "Please",
+    "Get me a green part",
+    "Get me a green part with two black stripes at the top",
+    "Baxter can you give me a green part with two black stripes at the top",
+    "Get me red blue green",
+    "Get me red top blue and green at the bottom",
+    "Give me the part with the stripes together at the",
+    "Give me the part with the stripes equally spread",
+    "Give me the cylinder",
+    "flat wooden part",
+    "Give me the last",
+    "Give me the part on the left",
+]
+
+X_speech = ev.speech_vectorizer.transform(TEST_SENTENCES)
+probas = np.stack([
+    m._predict_proba(np.zeros((len(TEST_SENTENCES), len(classes))), X_speech)
+    for m in models])
+
+fig, axes = plt.subplots(3, 5, sharey=True)
+for i, sentence in enumerate(TEST_SENTENCES):
+    plot_predict_proba(probas[:, i, :], classes, sentence, ax=axes[i // 5, i % 5])
+plt.show()

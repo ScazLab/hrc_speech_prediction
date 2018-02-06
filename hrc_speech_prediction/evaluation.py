@@ -26,7 +26,7 @@ class Evaluation(object):
         self.model_variations = model_variations
         self.X_context, self.context_actions = \
             features.get_context_features(self.data)
-        self.X_speech, _ = features.get_bow_features(
+        self.X_speech, self.speech_vectorizer = features.get_bow_features(
             self.data, tfidf=tfidf, n_grams=n_grams)
         # Participants we will exclude from training, but will test on
         self.test_participants = ["15.ADT"]
