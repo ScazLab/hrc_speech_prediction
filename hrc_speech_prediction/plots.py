@@ -1,3 +1,5 @@
+# coding: utf8
+
 from textwrap import wrap
 
 import numpy as np
@@ -5,7 +7,9 @@ from scipy.signal import savgol_filter
 import matplotlib.pyplot as plt
 
 
-def get_n_colors(n, color_map=plt.get_cmap()):
+def get_n_colors(n, color_map=None):
+    if color_map is None:
+        color_map = plt.get_cmap()
     return [color_map((1. * i) / n) for i in range(n)]
 
 
@@ -14,34 +18,36 @@ def plot_incremental_scores(scores, ax=None, smoothing_window=101, label=None):
         ax = plt.gca()
     xaxis = np.arange(len(scores))
     score_smooth = savgol_filter(scores, smoothing_window, 3, mode='mirror')
-    plt.scatter(xaxis, scores, marker='x')
-    plt.plot(score_smooth, label=label)
+    ax.scatter(xaxis, scores, marker='x')
+    ax.plot(score_smooth, label=label)
 
 
 def plot_predict_proba(probas, classes, utterance,
-                       model_names=None, truth=None, ax=None):
+                       model_names=None, truth=None, ax=None, colors=None,
+                       color_map=None):
     if ax is None:
         ax = plt.gca()
-    if model_names is None:
-        model_names = [None]
-        width = .8
-        shift = 0.
-    else:
-        width = 1. / (1 + len(model_names))
-        shift = 1. / len(model_names)
-    colors = get_n_colors(len(model_names))
+    if probas.shape < 2:
+        probas = probas[None, :]
+    n_models = probas.shape[0]
+    shift = .8 / n_models
+    if colors is None:
+        colors = get_n_colors(n_models, color_map=color_map)
     xs = np.arange(probas.shape[1])
-    for i, _ in enumerate(model_names):
-        rects = ax.bar(xs + i * shift, probas[i, :], width=width,
+    for i in range(n_models):
+        rects = ax.bar(xs + i * shift, probas[i, :], width=shift,
                        color=colors[i]).patches
         # Draw * above highest prediction
         best = rects[np.argmax(probas[i, :])]
         ax.text(best.get_x() + best.get_width() / 2,
                 best.get_height() * 1.01, '*', ha='center',
                 va='bottom', fontsize="12")
-    _, ticks = plt.xticks(xs, classes, rotation=70)
+    ax.set_xticks(1 + xs)
+    ticks = ax.set_xticklabels(classes, rotation=70, ha='right')
     if truth is not None:
         ticks[classes.index(truth)].set_weight('black')
-    ax.set_title("\n".join(wrap(utterance, 100)), fontsize="9")
-    if model_names != [None]:
+    ax.set_xlim(0, len(classes))
+    ax.set_title("\n".join(wrap(u'“' + utterance + u'”', 100)),
+                 fontsize="9")
+    if model_names is not None:
         ax.legend(model_names)
