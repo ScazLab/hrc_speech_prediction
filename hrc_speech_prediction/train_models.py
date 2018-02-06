@@ -34,8 +34,9 @@ def format_cntxt_indices(data, indices):
 
 
 def train_combined_model(speech_eps, context_eps, fit_type="incremental"):
-    TFIDF = True
-    N_GRAMS = (1, 1)
+    TFIDF = False
+    N_GRAMS = (1, 2)
+    alpha = .04
 
     path = defaults.DATA_PATH
     print("PATH: ", os.path.join(path, "train.json"))
@@ -54,7 +55,7 @@ def train_combined_model(speech_eps, context_eps, fit_type="incremental"):
     X_speech = X_speech[flat_train_ids, :]
 
     model_gen = SpeechModel.model_generator(
-        SGDClassifier, loss='log', average=True, penalty='l2')
+        SGDClassifier, loss='log', average=True, penalty='l2', alpha=alpha)
 
     combined_model = CombinedModel(
         vectorizer=vectorizer,
@@ -66,7 +67,7 @@ def train_combined_model(speech_eps, context_eps, fit_type="incremental"):
     if "incremental" in fit_type:
         combined_model.partial_fit(train_context, X_speech, labels)
     else:
-        combined_model.partial_fit(train_context, X_speech, labels)
+        combined_model.fit(train_context, X_speech, labels)
 
     return combined_model
     # model_path = os.path.join(path, 'combined_model_{}{}.pkl'.format(

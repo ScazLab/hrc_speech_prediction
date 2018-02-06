@@ -4,7 +4,7 @@
   <!--  pass this as a commandline arg to launch file e.g
        roslaunch human_robot_collaboration speech_predicition.launch participantID=42069-->
   <arg name="participantID" default="test"/>
-  <arg name="bag_path" default="/home/$(env USER)/Desktop/speech_prediction_bags/ExperimentData/$(arg participantID)/"/>
+  <arg name="bag_path" default="/home/$(env USER)/Desktop/speech_prediction_bags/Experiment2Data/$(arg participantID)/"/>
 
   <arg name="bag_topics"
        value= "/speech_to_text/log

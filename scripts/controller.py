@@ -12,6 +12,7 @@ from hrc_speech_prediction import train_models as train
 from hrc_speech_prediction.models import CombinedModel as cm
 from human_robot_collaboration.controller import BaseController
 from std_msgs.msg import String
+from std_srvs.srv import Empty
 
 parser = argparse.ArgumentParser("Run the autonomous controller")
 parser.add_argument(
@@ -87,6 +88,8 @@ class SpeechPredictionController(BaseController):
     }
     BRING = 'get_pass'
     WEB_TOPIC = '/web_interface/pressed'
+    ROSBAG_START = '/rosbag/start'
+    ROSBAG_STOP = '/rosbag/stop'
     MIN_WORDS = 4
 
     def __init__(self,
@@ -122,12 +125,17 @@ class SpeechPredictionController(BaseController):
         self.action_history = []
         # Subscriber to web topic to update context on repeated fail
         rospy.Subscriber(self.WEB_TOPIC, String, self._web_interface_cb)
+        # Start and stop rosbag recording automatically
+        # When controller starts and stops respectively.
+        self.rosbag_start = rospy.ServiceProxy(self.ROSBAG_START, Empty)
+        self.rosbag_stop = rospy.ServiceProxy(self.ROSBAG_STOP, Empty)
         self._debug = debug
         self._ctxt_lock = Lock()
         self.X_dummy_cntx = np.ones(
             (len(self.actions_in_context)), dtype='bool')
 
     def _run(self):
+        self.rosbag_start()
         self.timer.start()
         rospy.loginfo('Starting autonomous control')
         self._reset_wrong_actions()
@@ -140,7 +148,10 @@ class SpeechPredictionController(BaseController):
                     'Skipping utterance (too short): {}'.format(utterance))
             else:
                 action, _ = self.combined_model.predict(
-                    self.action_history, utter=utterance, plot=self._debug)
+                    self.action_history,
+                    utter=utterance,
+                    exclude=self.wrong_actions,
+                    plot=self._debug)
                 # with self._ctxt_lock:
                 #     ctxt = self.X_dummy_cntx.copy()
                 #     action = self.model.predict(ctxt[None, :], x_u,
@@ -156,6 +167,10 @@ class SpeechPredictionController(BaseController):
                     print("ACTION HIST", self.action_history)
                     self.action_history.append(action)
                     print("ACTION HIST UPDATED", self.action_history)
+
+    def _stop(self):
+        controller.rosbag_stop()  # Stops rosbag recording
+        super(BaseController, self)._stop()
 
     def take_action(self, action):
         side, obj = self.OBJECT_DICT[action]

@@ -5,7 +5,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.preprocessing import normalize
 
-from hrc_speech_prediction import context_model
+import rospy
+from hrc_speech_prediction import context_model, plots
 
 
 def get_argument_parser(description=None):
@@ -211,6 +212,7 @@ class CombinedModel(object):
                 cntxt,
                 utter=None,
                 model="both",
+                exclude=None,
                 plot=False,
                 return_probs=False):
 
@@ -226,11 +228,17 @@ class CombinedModel(object):
 
         probs = np.multiply(context_probs, speech_probs)
 
-        action = self.get_probable_action(probs)
+        action = self.get_probable_action(probs, exclude)
         # self.curr = self.curr._get_next_node(action)
 
         if plot and model == "both":
-            self.plot_predicitions(speech_probs, context_probs, probs, utter)
+            all_probs = np.vstack((speech_probs, context_probs, probs))
+            names = ["Speech", "Context", "Combined"]
+
+            plt.gcf().clear()
+            plots.plot_predict_proba(
+                all_probs, self.actions, utter, model_names=names)
+            plt.show(block=False)
         if return_probs and model == "both":
             return action, speech_probs, context_probs, probs
         else:
@@ -260,8 +268,19 @@ class CombinedModel(object):
 
         return (1.0 - eps) * p + (u * eps)
 
-    def get_probable_action(self, probs):
-        return self.actions[np.argmax(probs)]
+    def get_probable_action(self, probs, exclude):
+        # prob indices from highest to lowest
+        high_low_probs_idx = (-probs).argsort()
+
+        # Check to make sure we haven't tried to take action already
+        if exclude:
+            for i in high_low_probs_idx:
+                act = self.actions[i]
+                if act not in exclude:
+                    return act
+            raise "Error, all actions excluded!"
+        else:
+            return self.actions[high_low_probs_idx[0]]
 
     def plot_predicitions(self,
                           speech,
