@@ -1,5 +1,17 @@
 #!/usr/bin/env python
 
+
+"""Script to evaluate the speech model for a given set of parameters.
+
+- runs cross-validated evaluations on the training set,
+- plots the predictions for each utterance in the training set
+  to `<working_path>/figs/` (they correspond to training on all
+  participants but the one for the utterance),
+- plots predictions for some specific example utterances (trained on all
+  data).
+"""
+
+
 import os
 
 import numpy as np

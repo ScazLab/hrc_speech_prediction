@@ -25,6 +25,16 @@ def plot_incremental_scores(scores, ax=None, smoothing_window=101, label=None):
 def plot_predict_proba(probas, classes, utterance,
                        model_names=None, truth=None, ax=None, colors=None,
                        color_map=None):
+    """Plot predicted probabilities for one or more models.
+
+    :param probas: numpy array, shape is (n_models, n_classes)
+    :param classes: list(string)
+        names of the classes (in same order as predictions),
+    :param utterances: string
+    :param model_names: list(string)
+    :param truth: string
+        ground truth label
+    """
     if ax is None:
         ax = plt.gca()
     if probas.shape < 2:
@@ -42,7 +52,7 @@ def plot_predict_proba(probas, classes, utterance,
         ax.text(best.get_x() + best.get_width() / 2,
                 best.get_height() * 1.01, '*', ha='center',
                 va='bottom', fontsize="12")
-    ax.set_xticks(1 + xs)
+    ax.set_xticks(.8 + xs)
     ticks = ax.set_xticklabels(classes, rotation=70, ha='right')
     if truth is not None:
         ticks[classes.index(truth)].set_weight('black')
