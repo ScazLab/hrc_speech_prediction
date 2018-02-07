@@ -33,6 +33,14 @@ parser.add_argument(
     help='displays plots for each predicition',
     dest='debug',
     action='store_true')
+
+parser.add_argument(
+    '-l',
+    '--learning',
+    help='How to train the model',
+    choices=['incremental', 'offline'],
+    default='incremental')
+
 parser.set_defaults(debug=False)
 
 
@@ -99,6 +107,7 @@ class SpeechPredictionController(BaseController):
                  speech_eps=0.15,
                  context_eps=0.15,
                  timer_path=None,
+                 fit_type="incremental",
                  debug=False,
                  **kwargs):
         super(SpeechPredictionController, self).__init__(
@@ -113,8 +122,9 @@ class SpeechPredictionController(BaseController):
         # self.model = joblib.load(model_path)
         rospy.loginfo("Training model...")
         self.combined_model = train.train_combined_model(
-            speech_eps, context_eps, fit_type="batch")
+            speech_eps, context_eps, fit_type=fit_type)
         rospy.loginfo("Model training COMPLETED")
+        self.path = path
         # utter vectorizer
         vectorizer_path = os.path.join(path, "vocabulary.pkl")
         combined_model_path = os.path.join(path, "combined_model_0.150.15.pkl")
@@ -131,6 +141,7 @@ class SpeechPredictionController(BaseController):
         self.rosbag_start = rospy.ServiceProxy(self.ROSBAG_START, Empty)
         self.rosbag_stop = rospy.ServiceProxy(self.ROSBAG_STOP, Empty)
         self._debug = debug
+        self._fit_type = fit_type
         self._ctxt_lock = Lock()
         self.X_dummy_cntx = np.ones(
             (len(self.actions_in_context)), dtype='bool')
@@ -155,17 +166,14 @@ class SpeechPredictionController(BaseController):
                     utter=utter,
                     exclude=self.wrong_actions,
                     plot=self._debug)
-                # with self._ctxt_lock:
-                #     ctxt = self.X_dummy_cntx.copy()
-                #     action = self.model.predict(ctxt[None, :], x_u,
-                #                                 exclude=self.wrong_actions)[0]
                 message = "Taking action {} for \"{}\"".format(action, utter)
                 rospy.loginfo(message)
                 self.timer.log(message)
                 if self.take_action(action):
                     # Learn on successful action taken
-                    # self.combined_model.partial_fit([self.action_history],
-                    #                                 utter, [action])
+                    if self._fit_type == "incremental":
+                        self.combined_model.partial_fit([self.action_history],
+                                                        utter, [action])
                     self.action_history.append(action)
                     self._reset_wrong_actions()
 
@@ -173,13 +181,22 @@ class SpeechPredictionController(BaseController):
     def _ok_baxter(utter):
         "Checks that utter starts with something like Ok Baxter..."
         if utter:
-            return re.search("^(hey|ok|hi|alright) baxter", utter.lower())
+            return re.search("^(hey|ok|okay|hi|alright) baxter", utter.lower())
         else:
             return False  # than utter is probably None
 
-    def _stop(self):
+    def _abort(self):
+        model_path = os.path.join(self.path, '{}.pkl'.format(args.participant))
+
+        rospy.loginfo("Saving model to {}".format(model_path))
+        # Save trained model
+        with open(model_path, "wb") as m:
+            joblib.dump(self.combined_model, m, compress=9)
+
+        rospy.loginfo("Model saved")
         controller.rosbag_stop()  # Stops rosbag recording
-        super(BaseController, self)._stop()
+
+        super(BaseController, self)._abort()
 
     def take_action(self, action):
         side, obj = self.OBJECT_DICT[action]
@@ -243,6 +260,7 @@ controller = SpeechPredictionController(
     path=args.path,
     debug=args.debug,
     model=args.model,
+    fit_type=args.learning,
     timer_path='timer-{}.json'.format(args.participant))
 
 controller.run()
