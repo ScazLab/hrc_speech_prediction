@@ -66,7 +66,7 @@ def train_combined_model(speech_eps, context_eps, fit_type="incremental"):
 
     if "incremental" in fit_type:
         combined_model.partial_fit(train_context, X_speech, labels)
-    else:
+    elif "batch" in fit_type:
         combined_model.fit(train_context, X_speech, labels)
 
     return combined_model

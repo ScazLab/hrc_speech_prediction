@@ -2,6 +2,7 @@
 
 import argparse
 import os
+import re
 from threading import Lock
 
 import numpy as np
@@ -49,7 +50,7 @@ class DummyPredictor(object):
             [[w in u.lower() for w in self.words] for u in utterances])
 
     def predict(self, Xc, Xs, exclude=[]):
-        # return an object that is in context and which name is in utterance
+        # return an object that is in context and which name is in utter
         intersection = Xs * Xc
         intersection[:, [self.obj.index(a) for a in exclude]] = 0
         chosen = -np.ones((Xc.shape[0]), dtype='int8')
@@ -112,9 +113,9 @@ class SpeechPredictionController(BaseController):
         # self.model = joblib.load(model_path)
         rospy.loginfo("Training model...")
         self.combined_model = train.train_combined_model(
-            speech_eps, context_eps, fit_type="incremental")
+            speech_eps, context_eps, fit_type="batch")
         rospy.loginfo("Model training COMPLETED")
-        # utterance vectorizer
+        # utter vectorizer
         vectorizer_path = os.path.join(path, "vocabulary.pkl")
         combined_model_path = os.path.join(path, "combined_model_0.150.15.pkl")
         self.vectorizer = joblib.load(vectorizer_path)
@@ -139,34 +140,42 @@ class SpeechPredictionController(BaseController):
         self.timer.start()
         rospy.loginfo('Starting autonomous control')
         self._reset_wrong_actions()
-        utterance = None
+        utter = None
         while not self.finished:
-            rospy.loginfo('Waiting for utterance')
-            utterance = self.listen_sub.wait_for_msg(timeout=20.)
-            if utterance is None or len(utterance.split()) < self.MIN_WORDS:
+            rospy.loginfo('Waiting for utter')
+            utter = self.listen_sub.wait_for_msg(timeout=20.)
+            if not self._ok_baxter(utter) or len(
+                    utter.split()) < self.MIN_WORDS:
                 rospy.loginfo(
-                    'Skipping utterance (too short): {}'.format(utterance))
+                    'Skipping utter (too short or not well formed): {}'.format(
+                        utter))
             else:
                 action, _ = self.combined_model.predict(
                     self.action_history,
-                    utter=utterance,
+                    utter=utter,
                     exclude=self.wrong_actions,
                     plot=self._debug)
                 # with self._ctxt_lock:
                 #     ctxt = self.X_dummy_cntx.copy()
                 #     action = self.model.predict(ctxt[None, :], x_u,
                 #                                 exclude=self.wrong_actions)[0]
-                message = "Taking action {} for \"{}\"".format(
-                    action, utterance)
+                message = "Taking action {} for \"{}\"".format(action, utter)
                 rospy.loginfo(message)
                 self.timer.log(message)
                 if self.take_action(action):
                     # Learn on successful action taken
                     # self.combined_model.partial_fit([self.action_history],
-                    #                                 utterance, [action])
-                    print("ACTION HIST", self.action_history)
+                    #                                 utter, [action])
                     self.action_history.append(action)
-                    print("ACTION HIST UPDATED", self.action_history)
+                    self._reset_wrong_actions()
+
+    @staticmethod
+    def _ok_baxter(utter):
+        "Checks that utter starts with something like Ok Baxter..."
+        if utter:
+            return re.search("^(hey|ok|hi|alright) baxter", utter.lower())
+        else:
+            return False  # than utter is probably None
 
     def _stop(self):
         controller.rosbag_stop()  # Stops rosbag recording
