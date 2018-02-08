@@ -188,6 +188,7 @@ class SpeechPredictionController(BaseController):
         side, obj = self.OBJECT_DICT[action]
         for _ in range(3):  # Try four time to take action
             r = self._action(side, (self.BRING, [obj]), {'wait': True})
+            rospy.loginfo("TAKE ACTION ERROR: {}".format(r.response))
             if r.success:
                 return True
             elif r.response == r.ACT_FAILED:
@@ -269,7 +270,7 @@ class SpeechPredictionController(BaseController):
                 combined_model.speech_model = speech
                 combined_model.context_model = cntxt
             except (OSError, IOError):
-                rospy.logerror(
+                rospy.logerr(
                     "Error, pickled models not found! Training from data instead."
                 )
 
