@@ -4,6 +4,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.preprocessing import normalize
+import joblib
 
 from hrc_speech_prediction import context_model, plots
 
@@ -163,9 +164,10 @@ class PragmaticModel(ContextFilterModel):
 
 
 class CombinedModel(object):
+
     def __init__(self,
                  vectorizer,
-                 model_generator,
+                 speech_model_generator,
                  actions,
                  speech_eps=0.15,
                  context_eps=0.15):
@@ -175,7 +177,7 @@ class CombinedModel(object):
 
         self.actions = actions
 
-        self.model_generator = model_generator
+        self.speech_model_generator = speech_model_generator
         self._vectorizer = vectorizer
 
         self.context_model = context_model.ContextTreeModel(
@@ -186,7 +188,7 @@ class CombinedModel(object):
 
     def fit(self, ctxt, speech, actions):
         self.context_model.fit(ctxt, actions)
-        self.speech_model = self.model_generator(
+        self.speech_model = self.speech_model_generator(
             self.actions, features="speech").fit(
                 self._X_context, speech, actions, sample_weight=None)
 
@@ -203,7 +205,7 @@ class CombinedModel(object):
             self.speech_model.partial_fit(self._X_context, x_u, action,
                                           self.actions)
         else:
-            self.speech_model = self.model_generator(
+            self.speech_model = self.speech_model_generator(
                 self.actions, features="speech").partial_fit(
                     self._X_context, x_u, action, classes=self.actions)
 
@@ -281,5 +283,34 @@ class CombinedModel(object):
         else:
             return self.actions[high_low_probs_idx[0]]
 
+    # TODO: That's probably not what we want to have
     def __str__(self):
         return self.context_model.__str__()
+
+    def save(self, path):
+        """Saves model within path directory (creates if does not exist).
+        """
+        if not os.path.exists(path):
+            os.makedirs(path)
+        elif not os.path.isdir(path):
+            raise IOError('Path exists and is not a directory')
+        with open(os.path.join(path, "vectorizer.pkl"), "wb") as f:
+            joblib.dump(self._vectorizer, f, compress=9)
+        with open(os.path.join(path, "speech_model.pkl"), "wb") as f:
+            joblib.dump(self.speech_model, f, compress=9)
+        with open(os.path.join(path, "context_model.pkl"), "wb") as f:
+            joblib.dump(self.context_model, f, compress=9)
+
+    # TODO: improve this!!
+    @classmethod
+    def load_from_path(cls, path, actions, speech_model_generator,
+                       speech_eps, context_eps):
+        vectorizer = joblib.load(os.path.join(path, "vectorizer.pkl"))
+        speech = joblib.load(os.path.join(path, "speech_model.pkl"))
+        cntxt = joblib.load(os.path.join(path, "context_model.pkl"))
+        cm = cls(vectorizer, speech_model_generator, actions,
+                 speech_eps=speech_eps, context_eps=context_eps)
+        cm._vectorizer = vectorizer
+        cm.speech_model = speech
+        cm.context_model = cntxt
+        return cm
