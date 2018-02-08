@@ -118,8 +118,6 @@ class SpeechPredictionController(BaseController):
             recovery=True,
             timer_path=os.path.join(path, timer_path),
             **kwargs)
-        # model_path = os.path.join(path, "model_{}.pkl".format(model))
-        # self.model = joblib.load(model_path)
         rospy.loginfo("Training model...")
         self.path = path
         self.combined_model = self._train_or_load_model(
@@ -127,7 +125,6 @@ class SpeechPredictionController(BaseController):
         rospy.loginfo("Model training COMPLETED")
         # utter vectorizer
         vectorizer_path = os.path.join(path, "vocabulary.pkl")
-        combined_model_path = os.path.join(path, "combined_model_0.150.15.pkl")
         self.vectorizer = joblib.load(vectorizer_path)
         # actions in order of context vector
         self.actions_in_context = self.combined_model.actions

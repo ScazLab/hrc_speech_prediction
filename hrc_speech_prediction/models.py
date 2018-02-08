@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.preprocessing import normalize
 
-import rospy
 from hrc_speech_prediction import context_model, plots
 
 
@@ -281,52 +280,6 @@ class CombinedModel(object):
             raise "Error, all actions excluded!"
         else:
             return self.actions[high_low_probs_idx[0]]
-
-    def plot_predicitions(self,
-                          speech,
-                          context,
-                          both,
-                          utter,
-                          actual=None,
-                          save_path=None):
-        "Plots the probabilities for each possible action provided by speech, \
-        context, and speech + context "
-
-        X = np.arange(len(both))
-        fig, ax = plt.subplots(nrows=1, ncols=1)
-
-        # Want to normalize 'both' probs for easier visual comparison
-        nrmlz = 1.0 / sum(both)
-
-        ax.bar(X - 0.2, speech, width=0.2, color='r', align='center')
-        ax.bar(X, context, width=0.2, color='b', align='center')
-        ax.bar(X + 0.2, both * nrmlz, width=0.2, color='g', align='center')
-
-        ax.legend(('Speech', 'Context', 'Both'))
-
-        rects = ax.patches
-        max_prob = max(both * nrmlz)
-
-        # This draws a star above most probable action
-        for r in rects:
-            if r.get_height() == max_prob:
-                ax.text(
-                    r.get_x() + r.get_width() / 2,
-                    r.get_height() * 1.01,
-                    '*',
-                    ha='center',
-                    va='bottom')
-
-        if actual:
-            ax.text(self.speech_model.actions.index(actual), max_prob, "$")
-
-        plt.xticks(X, self.speech_model.actions, rotation=70)
-        plt.title(utter)
-
-        if save_path:
-            plt.savefig(save_path)
-        else:
-            plt.show(block=False)
 
     def __str__(self):
         return self.context_model.__str__()
