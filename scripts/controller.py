@@ -121,10 +121,10 @@ class SpeechPredictionController(BaseController):
         # model_path = os.path.join(path, "model_{}.pkl".format(model))
         # self.model = joblib.load(model_path)
         rospy.loginfo("Training model...")
-        self.combined_model = train.train_combined_model(
-            speech_eps, context_eps, fit_type=fit_type)
-        rospy.loginfo("Model training COMPLETED")
         self.path = path
+        self.combined_model = self._train_or_load_model(
+            speech_eps, context_eps, fit_type)
+        rospy.loginfo("Model training COMPLETED")
         # utter vectorizer
         vectorizer_path = os.path.join(path, "vocabulary.pkl")
         combined_model_path = os.path.join(path, "combined_model_0.150.15.pkl")
@@ -177,26 +177,12 @@ class SpeechPredictionController(BaseController):
                     self.action_history.append(action)
                     self._reset_wrong_actions()
 
-    @staticmethod
-    def _ok_baxter(utter):
-        "Checks that utter starts with something like Ok Baxter..."
-        if utter:
-            return re.search("^(hey|ok|okay|hi|alright) baxter", utter.lower())
-        else:
-            return False  # than utter is probably None
-
     def _abort(self):
-        model_path = os.path.join(self.path, '{}.pkl'.format(args.participant))
 
-        rospy.loginfo("Saving model to {}".format(model_path))
-        # Save trained model
-        with open(model_path, "wb") as m:
-            joblib.dump(self.combined_model, m, compress=9)
-
-        rospy.loginfo("Model saved")
+        self._save_model()
         controller.rosbag_stop()  # Stops rosbag recording
 
-        super(BaseController, self)._abort()
+        super(SpeechPredictionController, self)._abort()
 
     def take_action(self, action):
         side, obj = self.OBJECT_DICT[action]
@@ -253,6 +239,63 @@ class SpeechPredictionController(BaseController):
             return a
         else:
             return ''.join([a[:2], a[-1]])
+
+    @staticmethod
+    def _ok_baxter(utter):
+        "Checks that utter starts with something like Ok Baxter..."
+        if utter:
+            return re.search("^(hey|ok|okay|hi|alright|all right) baxter",
+                             utter.lower())
+        else:
+            return False  # than utter is probably None
+
+    def _train_or_load_model(self, speech_eps, context_eps, fit_type):
+        path = os.path.join(self.path, args.participant)
+
+        combined_model = train.train_combined_model(
+            speech_eps, context_eps, fit_type=fit_type)
+
+        if os.path.exists(path):
+            n_dirs = len([d for d in os.listdir(path) if ".pkl" not in d])
+            path = os.path.join(path, "update_{}".format(n_dirs - 1))
+
+            rospy.loginfo("Loading model from {}".format(path))
+            try:
+                vectorizer = joblib.load(os.path.join(path, "vectorizer.pkl"))
+                speech = joblib.load(os.path.join(path, "speech_model.pkl"))
+                cntxt = joblib.load(os.path.join(path, "context_model.pkl"))
+
+                combined_model._vectorizer = vectorizer
+                combined_model.speech_model = speech
+                combined_model.context_model = cntxt
+            except (OSError, IOError):
+                rospy.logerror(
+                    "Error, pickled models not found! Training from data instead."
+                )
+
+        return combined_model
+
+    def _save_model(self):
+        path = os.path.join(self.path, args.participant)
+
+        if not os.path.exists(path):
+            path = os.path.join(path, "update_0")
+        elif os.path.exists(path) and self._fit_type == "incremental":
+            n_dirs = len([d for d in os.listdir(path) if ".pkl" not in d])
+            path = os.path.join(path, "update_{}".format(n_dirs))
+        else:
+            return
+
+        os.makedirs(path)
+
+        rospy.loginfo("Saving models to {}".format(path))
+
+        with open(os.path.join(path, "vectorizer.pkl"), "wb") as f:
+            joblib.dump(self.combined_model._vectorizer, f, compress=9)
+        with open(os.path.join(path, "speech_model.pkl"), "wb") as f:
+            joblib.dump(self.combined_model.speech_model, f, compress=9)
+        with open(os.path.join(path, "context_model.pkl"), "wb") as f:
+            joblib.dump(self.combined_model.context_model, f, compress=9)
 
 
 args = parser.parse_args()
