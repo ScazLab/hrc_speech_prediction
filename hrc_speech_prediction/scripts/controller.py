@@ -12,8 +12,9 @@ import rospy
 from hrc_speech_prediction import train_models as train
 from hrc_speech_prediction.data import ALL_ACTIONS
 from hrc_speech_prediction.models import CombinedModel as CM
-from hrc_speech_prediction.speech_model import SpeechModel
+from hrc_speech_prediction.models import JointModel
 from human_robot_collaboration.controller import BaseController
+from human_robot_collaboration_msgs.msg import DataLog
 from std_msgs.msg import String
 from std_srvs.srv import Empty
 
@@ -142,6 +143,11 @@ class SpeechPredictionController(BaseController):
         # When controller starts and stops respectively.
         self.rosbag_start = rospy.ServiceProxy(self.ROSBAG_START, Empty)
         self.rosbag_stop = rospy.ServiceProxy(self.ROSBAG_STOP, Empty)
+
+        self.data_pub = rospy.Publisher(
+            'controller_data', DataLog, queue_size=10)
+        #rospy.init_node('controller', anonymous=True)
+
         self._debug = debug
         self._fit_type = fit_type
         self._ctxt_lock = Lock()
@@ -155,6 +161,8 @@ class SpeechPredictionController(BaseController):
         self._reset_wrong_actions()
         utter = None
         while not self.finished:
+            self.log_msg = DataLog(
+            )  # Logs the outcome of each speech/action pair
             rospy.loginfo('Waiting for utter')
             utter = self.listen_sub.wait_for_msg(timeout=20.)
             if not self._ok_baxter(utter) or len(
@@ -171,6 +179,9 @@ class SpeechPredictionController(BaseController):
                 message = "Taking action {} for \"{}\"".format(action, utter)
                 rospy.loginfo(message)
                 self.timer.log(message)
+
+                self.log_msg.action = action
+                self.log_msg.utter = utter
                 if self.take_action(action):
                     # Learn on successful action taken
                     if self._fit_type == "incremental":
@@ -178,6 +189,8 @@ class SpeechPredictionController(BaseController):
                                                [action])
                     self.action_history.append(action)
                     self._reset_wrong_actions()
+
+                self.data_pub.publish(self.log_msg)
 
     def _abort(self):
 
@@ -191,24 +204,35 @@ class SpeechPredictionController(BaseController):
         for _ in range(3):  # Try four time to take action
             r = self._action(side, (self.BRING, [obj]), {'wait': True})
             rospy.loginfo("TAKE ACTION ERROR: {}".format(r.response))
+
             if r.success:
+                self.log_msg.result = self.log_msg.CORRECT
                 return True
+
             elif r.response == r.ACT_FAILED:
                 message = "Marking {} as a wrong answer (adding to: [{}])".format(
                     action, ", ".join(
                         map(self._short_action, self.wrong_actions)))
+
                 rospy.loginfo(message)
                 self.timer.log(message)
+
                 with self._ctxt_lock:
                     self.wrong_actions.append(action)
+
+                self.log_msg.result = self.log_msg.FAIL
                 return False
+
             elif r.response in (r.NO_IR_SENSOR, r.ACT_NOT_IMPL):
                 rospy.logerr(r.response)
                 self._stop()
+
             else:
                 # Otherwise retry action
                 rospy.logwarn('Retrying failed action {}. [{}]'.format(
                     action, r.response))
+
+        self.log_msg.result = self.log_msg.ERROR
         return False
 
     def _reset_wrong_actions(self):
@@ -254,7 +278,7 @@ class SpeechPredictionController(BaseController):
 
     def _load_model(self, model_path, speech_eps, context_eps):
         self.model = CM.load_from_path(model_path, ALL_ACTIONS,
-                                       SpeechModel.model_generator(
+                                       JointModel.model_generator(
                                            SGDClassifier,
                                            **SPEECH_MODEL_PARAMETERS),
                                        speech_eps, context_eps)

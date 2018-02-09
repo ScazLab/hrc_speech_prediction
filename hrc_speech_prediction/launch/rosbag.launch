@@ -11,9 +11,11 @@
                /action_provider/left/state
                /action_provider/right/state
                /baxter_aruco_left/markers
+               /controller_data
                /baxter_aruco_right/markers
                /web_interface/log" />
 
+  
   <node pkg="data_logger" name="rosbag" type="data_logger" if="$(arg record)">
     <param name="rosbag_record_args" value="--output-prefix=$(arg participantID) $(arg bag_topics)"/>
     <param name="bag_path" value="$(arg bag_path)"/>

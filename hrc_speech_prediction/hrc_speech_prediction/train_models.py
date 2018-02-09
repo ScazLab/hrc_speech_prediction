@@ -6,8 +6,7 @@ from hrc_speech_prediction import defaults
 from hrc_speech_prediction.data import (ALL_ACTIONS, TRAIN_PARTICIPANTS,
                                         TrainData)
 from hrc_speech_prediction.features import get_bow_features
-from hrc_speech_prediction.models import CombinedModel
-from hrc_speech_prediction.speech_model import SpeechModel
+from hrc_speech_prediction.models import CombinedModel, JointModel
 
 
 def get_labels(indices, data):
@@ -36,7 +35,7 @@ def train_combined_model(speech_eps,
                          fit_type="incremental",
                          tfidf=False,
                          n_grams=(1, 2),
-                         speech_model_class=SpeechModel,
+                         speech_model_class=JointModel,
                          speech_model_parameters={}):
 
     path = defaults.DATA_PATH
@@ -55,8 +54,8 @@ def train_combined_model(speech_eps,
         data, tfidf=tfidf, n_grams=n_grams, max_features=None)
     X_speech = X_speech[flat_train_ids, :]
 
-    model_gen = SpeechModel.model_generator(speech_model_class,
-                                            **speech_model_parameters)
+    model_gen = JointModel.model_generator(speech_model_class,
+                                           **speech_model_parameters)
 
     combined_model = CombinedModel(
         vectorizer,
