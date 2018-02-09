@@ -203,6 +203,7 @@ class SpeechPredictionController(BaseController):
         side, obj = self.OBJECT_DICT[action]
         for _ in range(3):  # Try four time to take action
             r = self._action(side, (self.BRING, [obj]), {'wait': True})
+            self.log_msg.reason = r.response
             rospy.loginfo("TAKE ACTION ERROR: {}".format(r.response))
 
             if r.success:
@@ -269,10 +270,11 @@ class SpeechPredictionController(BaseController):
 
     @staticmethod
     def _ok_baxter(utter):
-        "Checks that utter starts with something like Ok Baxter..."
+        "Checks Ok Baxter... is near the start of the utter"
         if utter:
-            return re.search("^(hey|ok|okay|hi|alright|all right) baxter",
-                             utter.lower())
+            return re.search(
+                ".{0,3}(hey|ok|okay|hi|alright|all right) (baxter|boxer)",
+                utter.lower())
         else:
             return False  # than utter is probably None
 
@@ -291,8 +293,7 @@ class SpeechPredictionController(BaseController):
             tfidf=TFIDF,
             n_grams=N_GRAMS,
             speech_model_class=SGDClassifier,
-            speech_model_parameters=SPEECH_MODEL_PARAMETERS,
-            init_new_speech_actions=(fit_type == "incremental"))
+            speech_model_parameters=SPEECH_MODEL_PARAMETERS)
         self._save_model('model_initial')
 
     def _save_model(self, name='model'):
