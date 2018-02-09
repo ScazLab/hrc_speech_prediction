@@ -3,9 +3,9 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
+from sklearn.externals import joblib
 from sklearn.preprocessing import normalize
 
-import rospy
 from hrc_speech_prediction import context_model, plots
 
 
@@ -166,7 +166,7 @@ class PragmaticModel(ContextFilterModel):
 class CombinedModel(object):
     def __init__(self,
                  vectorizer,
-                 model_generator,
+                 speech_model_generator,
                  actions,
                  speech_eps=0.15,
                  context_eps=0.15):
@@ -176,7 +176,7 @@ class CombinedModel(object):
 
         self.actions = actions
 
-        self.model_generator = model_generator
+        self.speech_model_generator = speech_model_generator
         self._vectorizer = vectorizer
 
         self.context_model = context_model.ContextTreeModel(
@@ -187,7 +187,7 @@ class CombinedModel(object):
 
     def fit(self, ctxt, speech, actions):
         self.context_model.fit(ctxt, actions)
-        self.speech_model = self.model_generator(
+        self.speech_model = self.speech_model_generator(
             self.actions, features="speech").fit(
                 self._X_context, speech, actions, sample_weight=None)
 
@@ -204,7 +204,7 @@ class CombinedModel(object):
             self.speech_model.partial_fit(self._X_context, x_u, action,
                                           self.actions)
         else:
-            self.speech_model = self.model_generator(
+            self.speech_model = self.speech_model_generator(
                 self.actions, features="speech").partial_fit(
                     self._X_context, x_u, action, classes=self.actions)
 
@@ -282,51 +282,37 @@ class CombinedModel(object):
         else:
             return self.actions[high_low_probs_idx[0]]
 
-    def plot_predicitions(self,
-                          speech,
-                          context,
-                          both,
-                          utter,
-                          actual=None,
-                          save_path=None):
-        "Plots the probabilities for each possible action provided by speech, \
-        context, and speech + context "
-
-        X = np.arange(len(both))
-        fig, ax = plt.subplots(nrows=1, ncols=1)
-
-        # Want to normalize 'both' probs for easier visual comparison
-        nrmlz = 1.0 / sum(both)
-
-        ax.bar(X - 0.2, speech, width=0.2, color='r', align='center')
-        ax.bar(X, context, width=0.2, color='b', align='center')
-        ax.bar(X + 0.2, both * nrmlz, width=0.2, color='g', align='center')
-
-        ax.legend(('Speech', 'Context', 'Both'))
-
-        rects = ax.patches
-        max_prob = max(both * nrmlz)
-
-        # This draws a star above most probable action
-        for r in rects:
-            if r.get_height() == max_prob:
-                ax.text(
-                    r.get_x() + r.get_width() / 2,
-                    r.get_height() * 1.01,
-                    '*',
-                    ha='center',
-                    va='bottom')
-
-        if actual:
-            ax.text(self.speech_model.actions.index(actual), max_prob, "$")
-
-        plt.xticks(X, self.speech_model.actions, rotation=70)
-        plt.title(utter)
-
-        if save_path:
-            plt.savefig(save_path)
-        else:
-            plt.show(block=False)
-
+    # TODO: That's probably not what we want to have
     def __str__(self):
         return self.context_model.__str__()
+
+    def save(self, path):
+        """Saves model within path directory (creates if does not exist).
+        """
+        if os.path.exists(path):
+            raise IOError('Path already exists')
+        os.makedirs(path)
+        with open(os.path.join(path, "vectorizer.pkl"), "wb") as f:
+            joblib.dump(self._vectorizer, f, compress=9)
+        with open(os.path.join(path, "speech_model.pkl"), "wb") as f:
+            joblib.dump(self.speech_model, f, compress=9)
+        with open(os.path.join(path, "context_model.pkl"), "wb") as f:
+            joblib.dump(self.context_model, f, compress=9)
+
+    # TODO: improve this!!
+    @classmethod
+    def load_from_path(cls, path, actions, speech_model_generator, speech_eps,
+                       context_eps):
+        vectorizer = joblib.load(os.path.join(path, "vectorizer.pkl"))
+        speech = joblib.load(os.path.join(path, "speech_model.pkl"))
+        cntxt = joblib.load(os.path.join(path, "context_model.pkl"))
+        cm = cls(
+            vectorizer,
+            speech_model_generator,
+            actions,
+            speech_eps=speech_eps,
+            context_eps=context_eps)
+        cm._vectorizer = vectorizer
+        cm.speech_model = speech
+        cm.context_model = cntxt
+        return cm

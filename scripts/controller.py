@@ -6,11 +6,13 @@ import re
 from threading import Lock
 
 import numpy as np
-from sklearn.externals import joblib
+from sklearn.linear_model import SGDClassifier
 
 import rospy
 from hrc_speech_prediction import train_models as train
-from hrc_speech_prediction.models import CombinedModel as cm
+from hrc_speech_prediction.data import ALL_ACTIONS
+from hrc_speech_prediction.models import CombinedModel as CM
+from hrc_speech_prediction.speech_model import SpeechModel
 from human_robot_collaboration.controller import BaseController
 from std_msgs.msg import String
 from std_srvs.srv import Empty
@@ -18,14 +20,11 @@ from std_srvs.srv import Empty
 parser = argparse.ArgumentParser("Run the autonomous controller")
 parser.add_argument(
     'path', help='path to the model files', default=os.path.curdir)
-parser.add_argument(
-    '-m',
-    '--model',
-    help='model to use',
-    choices=['speech', 'both', 'speech_table', 'both_table'],
-    default='both')
+parser.add_argument('-m', '--model', help='path to model to use', default=None)
 parser.add_argument(
     '-p', '--participant', help='id of participant', default='test')
+parser.add_argument(
+    '-t', '--trial', type=int, help='id of the trial', default='test')
 
 parser.add_argument(
     '-d',
@@ -42,6 +41,15 @@ parser.add_argument(
     default='incremental')
 
 parser.set_defaults(debug=False)
+
+TFIDF = False
+N_GRAMS = (1, 2)
+SPEECH_MODEL_PARAMETERS = {
+    'alpha': .04,
+    'loss': 'log',
+    'average': True,
+    'penalty': 'l2',
+}
 
 
 class DummyPredictor(object):
@@ -67,6 +75,13 @@ class DummyPredictor(object):
         scr = self.obj.index('screwdriver_1')
         chosen[(chosen == -1).nonzero()[0]] = scr
         return [self.obj[c] for c in chosen]
+
+
+def _check_path(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+    elif not os.path.isdir(path):
+        raise IOError('Path exists and is not a directory')
 
 
 class SpeechPredictionController(BaseController):
@@ -103,7 +118,9 @@ class SpeechPredictionController(BaseController):
 
     def __init__(self,
                  path,
-                 model='both',
+                 participant='test',
+                 trial=0,
+                 model=None,
                  speech_eps=0.15,
                  context_eps=0.15,
                  timer_path=None,
@@ -118,19 +135,20 @@ class SpeechPredictionController(BaseController):
             recovery=True,
             timer_path=os.path.join(path, timer_path),
             **kwargs)
-        # model_path = os.path.join(path, "model_{}.pkl".format(model))
-        # self.model = joblib.load(model_path)
+        # Initializing storage space
+        self.participant_path = os.path.join(path, participant)
+        _check_path(self.participant_path)
+        self.trial = trial
+        self.path = os.path.join(self.participant_path, str(trial))
+        _check_path(self.path)
         rospy.loginfo("Training model...")
-        self.path = path
-        self.combined_model = self._train_or_load_model(
-            speech_eps, context_eps, fit_type)
+        if model is None:
+            self._train_model(speech_eps, context_eps, fit_type)
+        else:
+            self._load_model(model, speech_eps, context_eps)
         rospy.loginfo("Model training COMPLETED")
-        # utter vectorizer
-        vectorizer_path = os.path.join(path, "vocabulary.pkl")
-        combined_model_path = os.path.join(path, "combined_model_0.150.15.pkl")
-        self.vectorizer = joblib.load(vectorizer_path)
         # actions in order of context vector
-        self.actions_in_context = self.combined_model.actions
+        self.actions_in_context = self.model.actions
         # List of successful actions taken, this is used to
         # train contextModel
         self.action_history = []
@@ -161,7 +179,7 @@ class SpeechPredictionController(BaseController):
                     'Skipping utter (too short or not well formed): {}'.format(
                         utter))
             else:
-                action, _ = self.combined_model.predict(
+                action, _ = self.model.predict(
                     self.action_history,
                     utter=utter,
                     exclude=self.wrong_actions,
@@ -172,14 +190,14 @@ class SpeechPredictionController(BaseController):
                 if self.take_action(action):
                     # Learn on successful action taken
                     if self._fit_type == "incremental":
-                        self.combined_model.partial_fit([self.action_history],
-                                                        utter, [action])
+                        self.model.partial_fit([self.action_history], utter,
+                                               [action])
                     self.action_history.append(action)
                     self._reset_wrong_actions()
 
     def _abort(self):
 
-        self._save_model()
+        self._save_model('model_final')
         controller.rosbag_stop()  # Stops rosbag recording
 
         super(SpeechPredictionController, self)._abort()
@@ -250,58 +268,34 @@ class SpeechPredictionController(BaseController):
         else:
             return False  # than utter is probably None
 
-    def _train_or_load_model(self, speech_eps, context_eps, fit_type):
-        path = os.path.join(self.path, args.participant)
+    def _load_model(self, model_path, speech_eps, context_eps):
+        self.model = CM.load_from_path(model_path, ALL_ACTIONS,
+                                       SpeechModel.model_generator(
+                                           SGDClassifier,
+                                           **SPEECH_MODEL_PARAMETERS),
+                                       speech_eps, context_eps)
 
-        combined_model = train.train_combined_model(
-            speech_eps, context_eps, fit_type=fit_type)
+    def _train_model(self, speech_eps, context_eps, fit_type):
+        self.model = train.train_combined_model(
+            speech_eps,
+            context_eps,
+            fit_type=fit_type,
+            tfidf=TFIDF,
+            n_grams=N_GRAMS,
+            speech_model_class=SGDClassifier,
+            speech_model_parameters=SPEECH_MODEL_PARAMETERS)
+        self._save_model('model_initial')
 
-        if os.path.exists(path):
-            n_dirs = len([d for d in os.listdir(path) if ".pkl" not in d])
-            path = os.path.join(path, "update_{}".format(n_dirs - 1))
-
-            rospy.loginfo("Loading model from {}".format(path))
-            try:
-                vectorizer = joblib.load(os.path.join(path, "vectorizer.pkl"))
-                speech = joblib.load(os.path.join(path, "speech_model.pkl"))
-                cntxt = joblib.load(os.path.join(path, "context_model.pkl"))
-
-                combined_model._vectorizer = vectorizer
-                combined_model.speech_model = speech
-                combined_model.context_model = cntxt
-            except (OSError, IOError):
-                rospy.logerr(
-                    "Error, pickled models not found! Training from data instead."
-                )
-
-        return combined_model
-
-    def _save_model(self):
-        path = os.path.join(self.path, args.participant)
-
-        if not os.path.exists(path):
-            path = os.path.join(path, "update_0")
-        elif os.path.exists(path) and self._fit_type == "incremental":
-            n_dirs = len([d for d in os.listdir(path) if ".pkl" not in d])
-            path = os.path.join(path, "update_{}".format(n_dirs))
-        else:
-            return
-
-        os.makedirs(path)
-
-        rospy.loginfo("Saving models to {}".format(path))
-
-        with open(os.path.join(path, "vectorizer.pkl"), "wb") as f:
-            joblib.dump(self.combined_model._vectorizer, f, compress=9)
-        with open(os.path.join(path, "speech_model.pkl"), "wb") as f:
-            joblib.dump(self.combined_model.speech_model, f, compress=9)
-        with open(os.path.join(path, "context_model.pkl"), "wb") as f:
-            joblib.dump(self.combined_model.context_model, f, compress=9)
+    def _save_model(self, name='model'):
+        self.model.save(os.path.join(self.path, name))
+        rospy.loginfo("Saved models {} to {}".format(name, self.path))
 
 
 args = parser.parse_args()
 controller = SpeechPredictionController(
     path=args.path,
+    participant=args.participant,
+    trial=args.trial,
     debug=args.debug,
     model=args.model,
     fit_type=args.learning,
