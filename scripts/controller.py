@@ -20,7 +20,12 @@ from std_srvs.srv import Empty
 parser = argparse.ArgumentParser("Run the autonomous controller")
 parser.add_argument(
     'path', help='path to the model files', default=os.path.curdir)
-parser.add_argument('-m', '--model', help='path to model to use', default=None)
+parser.add_argument(
+    '-m',
+    '--model-from-trial',
+    type=int,
+    default=None,
+    help='path to model to use')
 parser.add_argument(
     '-p', '--participant', help='id of participant', default='test')
 parser.add_argument(
@@ -52,36 +57,14 @@ SPEECH_MODEL_PARAMETERS = {
 }
 
 
-class DummyPredictor(object):
-    def __init__(self, object_list):
-        self.obj = object_list
-        self.words = [o.split('_')[0] for o in self.obj]
-
-    @property
-    def n_obj(self):
-        return len(self.obj)
-
-    def transform(self, utterances):
-        return np.array(
-            [[w in u.lower() for w in self.words] for u in utterances])
-
-    def predict(self, Xc, Xs, exclude=[]):
-        # return an object that is in context and which name is in utter
-        intersection = Xs * Xc
-        intersection[:, [self.obj.index(a) for a in exclude]] = 0
-        chosen = -np.ones((Xc.shape[0]), dtype='int8')
-        ii, jj = intersection.nonzero()
-        chosen[ii] = jj
-        scr = self.obj.index('screwdriver_1')
-        chosen[(chosen == -1).nonzero()[0]] = scr
-        return [self.obj[c] for c in chosen]
-
-
-def _check_path(path):
-    if not os.path.exists(path):
+def _check_path(path, fail_on_exist=True):
+    if os.path.exists(path):
+        if not os.path.isdir(path):
+            raise IOError('Path exists and is not a directory')
+        elif fail_on_exist:
+            raise IOError('Path to trial already exists')
+    else:
         os.makedirs(path)
-    elif not os.path.isdir(path):
-        raise IOError('Path exists and is not a directory')
 
 
 class SpeechPredictionController(BaseController):
@@ -136,15 +119,16 @@ class SpeechPredictionController(BaseController):
             timer_path=os.path.join(path, timer_path),
             **kwargs)
         # Initializing storage space
-        self.participant_path = os.path.join(path, participant)
-        _check_path(self.participant_path)
+        participant_path = os.path.join(path, participant)
+        _check_path(participant_path, fail_on_exist=False)
         self.trial = trial
-        self.path = os.path.join(self.participant_path, str(trial))
+        self.path = os.path.join(participant_path, str(trial))
         _check_path(self.path)
         rospy.loginfo("Training model...")
         if model is None:
             self._train_model(speech_eps, context_eps, fit_type)
         else:
+            model = os.path.join(participant_path, str(model), "model_final")
             self._load_model(model, speech_eps, context_eps)
         rospy.loginfo("Model training COMPLETED")
         # actions in order of context vector
@@ -297,7 +281,7 @@ controller = SpeechPredictionController(
     participant=args.participant,
     trial=args.trial,
     debug=args.debug,
-    model=args.model,
+    model=args.model_from_trial,
     fit_type=args.learning,
     timer_path='timer-{}.json'.format(args.participant))
 
