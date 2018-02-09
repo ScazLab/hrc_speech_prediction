@@ -291,7 +291,8 @@ class SpeechPredictionController(BaseController):
             tfidf=TFIDF,
             n_grams=N_GRAMS,
             speech_model_class=SGDClassifier,
-            speech_model_parameters=SPEECH_MODEL_PARAMETERS)
+            speech_model_parameters=SPEECH_MODEL_PARAMETERS,
+            init_new_speech_actions=(fit_type == "incremental"))
         self._save_model('model_initial')
 
     def _save_model(self, name='model'):

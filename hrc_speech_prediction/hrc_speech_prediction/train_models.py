@@ -43,7 +43,9 @@ def update_speech_for_new_actions(speech_model, vecorizer, weight=1):
     labels = ['front_2'] * 2 + ['front_4'] * 2
     # Devide weights by two because two utterances for each new action
     weights = np.ones(len(labels)) * weight * .5
-    speech_model.partial_fit(X, labels, sample_weight=weights)
+    # TODO: the following two lines should be changed
+    labels = speech_model._transform_labels(labels)
+    speech_model.model.partial_fit(X, labels, sample_weight=weights)
 
 
 def train_combined_model(speech_eps,
@@ -90,7 +92,7 @@ def train_combined_model(speech_eps,
         if "incremental" not in fit_type:
             raise NotImplementedError("Can't add speech data on offline speech")
         update_speech_for_new_actions(combined_model.speech_model,
-                                      combined_model.vectorizer,
+                                      combined_model._vectorizer,
                                       weight=len(labels) * 1. / len(ALL_ACTIONS)
                                       )
 
