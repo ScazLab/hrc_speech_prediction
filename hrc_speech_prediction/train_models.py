@@ -2,6 +2,8 @@
 
 import os
 
+import numpy as np
+
 from hrc_speech_prediction import defaults
 from hrc_speech_prediction.data import (ALL_ACTIONS, TRAIN_PARTICIPANTS,
                                         TrainData)
@@ -31,10 +33,25 @@ def format_cntxt_indices(data, indices):
     return cntxts, actions
 
 
+def update_speech_for_new_actions(speech_model, vecorizer, weight=1):
+    X = vecorizer.transform([
+        "white part with red stripes in the middle",
+        "white cylindrical base with red lines in the middle",
+        "white part with red stripes far apart",
+        ("white cylindrical base with one red lines at the top and one "
+         "at the bottom"),
+    ])
+    labels = ['front_2'] * 2 + ['front_4'] * 2
+    # Devide weights by two because two utterances for each new action
+    weights = np.ones(len(labels)) * weight * .5
+    speech_model.partial_fit(X, labels, sample_weight=weights)
+
+
 def train_combined_model(speech_eps, context_eps, fit_type="incremental",
                          tfidf=False, n_grams=(1, 2),
                          speech_model_class=SpeechModel,
-                         speech_model_parameters={}):
+                         speech_model_parameters={},
+                         init_new_speech_actions=False):
 
     path = defaults.DATA_PATH
     print("PATH: ", os.path.join(path, "train.json"))
@@ -66,6 +83,14 @@ def train_combined_model(speech_eps, context_eps, fit_type="incremental",
         combined_model.partial_fit(train_context, X_speech, labels)
     elif "offline" in fit_type:
         combined_model.fit(train_context, X_speech, labels)
+
+    if init_new_speech_actions:
+        if "incremental" not in fit_type:
+            raise NotImplementedError("Can't add speech data on offline speech")
+        update_speech_for_new_actions(combined_model.speech_model,
+                                      combined_model.vectorizer,
+                                      weight=len(labels) * 1. / len(ALL_ACTIONS)
+                                      )
 
     return combined_model
     # model_path = os.path.join(path, 'combined_model_{}{}.pkl'.format(
