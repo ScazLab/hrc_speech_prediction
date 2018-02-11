@@ -4,7 +4,7 @@ string action # action taken by robot
 
 string result # was the action successful?
 
-#string reason
+string reason
 
 
 string CORRECT = CORRECT

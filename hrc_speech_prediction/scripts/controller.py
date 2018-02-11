@@ -13,8 +13,8 @@ from hrc_speech_prediction import train_models as train
 from hrc_speech_prediction.data import ALL_ACTIONS
 from hrc_speech_prediction.models import CombinedModel as CM
 from hrc_speech_prediction.models import JointModel
+from hrc_speech_prediction_msgs.msg import DataLog
 from human_robot_collaboration.controller import BaseController
-from human_robot_collaboration_msgs.msg import DataLog
 from std_msgs.msg import String
 from std_srvs.srv import Empty
 
@@ -171,10 +171,13 @@ class SpeechPredictionController(BaseController):
                     'Skipping utter (too short or not well formed): {}'.format(
                         utter))
             else:
+                # exclude from prediction wrong actions and
+                # actions previously taken
+                exclude = self.wrong_actions + self.action_history
                 action, _ = self.model.predict(
                     self.action_history,
                     utter=utter,
-                    exclude=self.wrong_actions,
+                    exclude=exclude,
                     plot=self._debug)
                 message = "Taking action {} for \"{}\"".format(action, utter)
                 rospy.loginfo(message)
@@ -234,6 +237,7 @@ class SpeechPredictionController(BaseController):
                     action, r.response))
 
         self.log_msg.result = self.log_msg.ERROR
+        self.wrong_actions.append(action)
         return False
 
     def _reset_wrong_actions(self):
@@ -273,7 +277,7 @@ class SpeechPredictionController(BaseController):
         "Checks Ok Baxter... is near the start of the utter"
         if utter:
             return re.search(
-                ".{0,3}(hey|ok|okay|hi|alright|all right) (baxter|boxer)",
+                ".{0,2}(hey|ok|okay|hi|alright|all right).{0,2}(baxter|boxer|braxter)",
                 utter.lower())
         else:
             return False  # than utter is probably None
