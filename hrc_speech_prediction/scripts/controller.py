@@ -127,7 +127,16 @@ class SpeechPredictionController(BaseController):
         _check_path(self.path)
         rospy.loginfo("Training model...")
         if model is None:
-            self._train_model(speech_eps, context_eps, fit_type)
+            if trial == 1:
+                self._train_model(speech_eps, context_eps, fit_type)
+            elif fit_type == 'incremental':
+                model = os.path.join(participant_path, str(trial - 1),
+                                     "model_final")
+                self._load_model(model, speech_eps, context_eps)
+            elif fit_type == "offline":
+                model = os.path.join(participant_path, "1", "model_final")
+                self._load_model(model, speech_eps, context_eps)
+
         else:
             model = os.path.join(participant_path, str(model), "model_final")
             self._load_model(model, speech_eps, context_eps)
