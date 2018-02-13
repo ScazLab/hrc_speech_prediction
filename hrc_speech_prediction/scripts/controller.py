@@ -140,7 +140,7 @@ class SpeechPredictionController(BaseController):
         else:
             model = os.path.join(participant_path, str(model), "model_final")
             self._load_model(model, speech_eps, context_eps)
-        rospy.loginfo("Model training COMPLETED")
+        rospy.loginfo("Model loaded from {}".format(model))
         # actions in order of context vector
         self.actions_in_context = self.model.actions
         # List of successful actions taken, this is used to
@@ -286,7 +286,7 @@ class SpeechPredictionController(BaseController):
         "Checks Ok Baxter... is near the start of the utter"
         if utter:
             return re.search(
-                ".{0,2}(hey|ok|okay|hi|alright|all right).{0,2}(baxter|boxer|braxter)",
+                ".{0,2}(hey|ok|okay|hi|alright|all right|k).{0,4}(baxter|boxer|braxter|back store| back sir|baxar)",
                 utter.lower())
         else:
             return False  # than utter is probably None

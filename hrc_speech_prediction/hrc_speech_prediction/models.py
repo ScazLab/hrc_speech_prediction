@@ -214,6 +214,7 @@ class CombinedModel(object):
                 model="both",
                 exclude=None,
                 plot=False,
+                ax=None,
                 return_probs=False):
 
         if model == "context" is not None:
@@ -235,10 +236,10 @@ class CombinedModel(object):
             all_probs = np.vstack((speech_probs, context_probs, probs))
             names = ["Speech", "Context", "Combined"]
 
-            plt.gcf().clear()
+            # plt.gcf().clear()
             plots.plot_predict_proba(
-                all_probs, self.actions, utter, model_names=names)
-            plt.show(block=False)
+                all_probs, self.actions, utter, model_names=names, ax=ax)
+            # plt.show(block=False)
         if return_probs and model == "both":
             return action, speech_probs, context_probs, probs
         else:

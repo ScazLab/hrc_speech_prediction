@@ -2,9 +2,9 @@
 
 from textwrap import wrap
 
+import matplotlib.pyplot as plt
 import numpy as np
 from scipy.signal import savgol_filter
-import matplotlib.pyplot as plt
 
 
 def get_n_colors(n, color_map=None):
@@ -22,8 +22,13 @@ def plot_incremental_scores(scores, ax=None, smoothing_window=101, label=None):
     ax.plot(score_smooth, label=label)
 
 
-def plot_predict_proba(probas, classes, utterance,
-                       model_names=None, truth=None, ax=None, colors=None,
+def plot_predict_proba(probas,
+                       classes,
+                       utterance,
+                       model_names=None,
+                       truth=None,
+                       ax=None,
+                       colors=None,
                        color_map=None):
     """Plot predicted probabilities for one or more models.
 
@@ -45,19 +50,22 @@ def plot_predict_proba(probas, classes, utterance,
         colors = get_n_colors(n_models, color_map=color_map)
     xs = np.arange(probas.shape[1])
     for i in range(n_models):
-        rects = ax.bar(xs + i * shift, probas[i, :], width=shift,
-                       color=colors[i]).patches
+        rects = ax.bar(
+            xs + i * shift, probas[i, :], width=shift, color=colors[i]).patches
         # Draw * above highest prediction
         best = rects[np.argmax(probas[i, :])]
-        ax.text(best.get_x() + best.get_width() / 2,
-                best.get_height() * 1.01, '*', ha='center',
-                va='bottom', fontsize="12")
+        ax.text(
+            best.get_x() + best.get_width() / 2,
+            best.get_height() * 1.01,
+            '*',
+            ha='center',
+            va='bottom',
+            fontsize="12")
     ax.set_xticks(.8 + xs)
     ticks = ax.set_xticklabels(classes, rotation=70, ha='right')
     if truth is not None:
         ticks[classes.index(truth)].set_weight('black')
     ax.set_xlim(0, len(classes))
-    ax.set_title("\n".join(wrap(u'“' + utterance + u'”', 100)),
-                 fontsize="9")
+    ax.set_title("\n".join(wrap(u'“' + utterance + u'”', 40)), fontsize="9")
     if model_names is not None:
         ax.legend(model_names)
