@@ -286,7 +286,7 @@ class SpeechPredictionController(BaseController):
         "Checks Ok Baxter... is near the start of the utter"
         if utter:
             return re.search(
-                r"^(\w+\b\s){0,2}(baxter|boxer|braxter|back store| back sir|baxar)",
+                r"^(\w+\b\s){0,2}(baxter|boxer|braxter|back store| back sir|baxar|dexter)",
                 utter.lower())
         else:
             return False  # than utter is probably None
