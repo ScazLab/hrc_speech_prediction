@@ -38,7 +38,7 @@ SPEECH_MODEL_PARAMETERS = {
 
 def plot_trial(trial, bag):
     model_path = os.path.join(args.model_path, args.participant, str(trial),
-                              "model_final")
+                              "model_initial")
     fig_path = os.path.join(
         os.path.dirname(__file__), "figs", args.participant, str(trial))
 

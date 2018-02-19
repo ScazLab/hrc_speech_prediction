@@ -213,7 +213,7 @@ class SpeechPredictionController(BaseController):
 
     def take_action(self, action):
         side, obj = self.OBJECT_DICT[action]
-        for _ in range(3):  # Try four time to take action
+        for _ in range(5):  # Try four time to take action
             r = self._action(side, (self.BRING, [obj]), {'wait': True})
             self.log_msg.reason = r.response
             rospy.loginfo("TAKE ACTION ERROR: {}".format(r.response))
@@ -222,7 +222,7 @@ class SpeechPredictionController(BaseController):
                 self.log_msg.result = self.log_msg.CORRECT
                 return True
 
-            elif r.response == r.ACT_FAILED:
+            elif r.response == r.ACT_KILLED:
                 message = "Marking {} as a wrong answer (adding to: [{}])".format(
                     action, ", ".join(
                         map(self._short_action, self.wrong_actions)))
@@ -286,7 +286,7 @@ class SpeechPredictionController(BaseController):
         "Checks Ok Baxter... is near the start of the utter"
         if utter:
             return re.search(
-                ".{0,2}(hey|ok|okay|hi|alright|all right|k).{0,4}(baxter|boxer|braxter|back store| back sir|baxar)",
+                r"^(\w+\b\s){0,2}(baxter|boxer|braxter|back store| back sir|baxar)",
                 utter.lower())
         else:
             return False  # than utter is probably None

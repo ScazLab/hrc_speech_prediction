@@ -48,7 +48,7 @@
     <arg name="internal_recovery" default="true"/>
     <param name="action_provider/internal_recovery" value="$(arg internal_recovery)"/>
     <!-- print level (shared throughout the control code) -->
-    <arg name="print_level" default="0"/>
+    <arg name="print_level" default="4"/>
     <param name="print_level" value="$(arg print_level)" />
 
     <node pkg="human_robot_collaboration" type="sp_pred_action_provider" name="sp_pred_action_provider" output="screen">
@@ -58,7 +58,7 @@
 
     <!-- VISUALIZATION & MISC -->
     <!-- Parameter for speech pop up duration -->
-    <param name="baxter_display/speech_duration"        value="16.0"/>
+    <param name="baxter_display/speech_duration"        value="5.0"/>
 
     <node pkg="human_robot_collaboration" type="baxter_display"    name="baxter_display"  output="screen"/>
 
@@ -74,6 +74,6 @@
     <include file="$(find ros_speech2text)/launch/ros_speech2text.launch" />
 
     <!-- Display listening on screen -->
-    <node pkg="ros_speech2text" type="listening_to_display" name="listening_to_display" required="true"  output="screen"/>
+    <!-- <node pkg="ros_speech2text" type="listening_to_display.py" name="listening_to_display.py" output="screen"/> -->
 
 </launch>
