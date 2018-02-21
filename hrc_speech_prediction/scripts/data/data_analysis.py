@@ -20,6 +20,7 @@ parser.add_argument(
     help='path to the experiment files',
     default="/home/scazlab/Desktop/speech_prediction_bags/Experiment2Data/")
 
+TOPIC = "/controller_data"
 EXCLUDE = {  # Number in tuples represent trials to ignore
     '4.ACpCp': (1, 2, 3),
     '5.BApAp': (1, 2, 3),
@@ -44,6 +45,24 @@ class AnalyzeData(object):
                     continue
                 bags = participant_bags(args.bag_path, p)
                 filt_bags = [bags[i - 1 for i in self.exclude]]
+
+
+    def count_errors_across_trials(self, bag_dict):
+        trial1_errors = self._bags_to_error_counts(bag_dict[1])
+        trial2_errors = self._bags_to_error_counts(bag_dict[2])
+        trial3_errors = self._bags_to_error_counts(bag_dict[3])
+        return trial1_errors, trial2_errors, trial3_errors
+
+    def _bags_to_error_counts(self, bags):
+        error_counts = []
+        for bag in bags:
+            count = 0
+            for m in bag.read_messages():
+                if m.topic == TOPIC:
+                    if m.result == "ERROR":
+                        count += 1
+            error_counts.append(count)
+        return np.array(error_counts)
 
     def plot_across_trials(self):
         pass
