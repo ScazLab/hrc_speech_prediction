@@ -96,6 +96,7 @@ class SpeechPredictionController(BaseController):
     }
     BRING = 'get_pass'
     WEB_TOPIC = '/web_interface/pressed'
+    CONTEXT_TOPIC = '/context_history'
     ROSBAG_START = '/rosbag/start'
     ROSBAG_STOP = '/rosbag/stop'
     MIN_WORDS = 4
@@ -148,6 +149,9 @@ class SpeechPredictionController(BaseController):
         self.action_history = []
         # Subscriber to web topic to update context on repeated fail
         rospy.Subscriber(self.WEB_TOPIC, String, self._web_interface_cb)
+        # Allows us to delete context from action_history manually if
+        # incorrect action was taken
+        # rospy.Subscriber(self.CONTEXT_TOPIC, String, self._cntxt_cb)
         # Start and stop rosbag recording automatically
         # When controller starts and stops respectively.
         self.rosbag_start = rospy.ServiceProxy(self.ROSBAG_START, Empty)
@@ -170,8 +174,9 @@ class SpeechPredictionController(BaseController):
         self._reset_wrong_actions()
         utter = None
         while not self.finished:
-            self.log_msg = DataLog(
-            )  # Logs the outcome of each speech/action pair
+            # Logs the outcome of each speech/action pair
+            self.log_msg = DataLog()
+            rospy.loginfo('Curr context {}'.format(self.action_history))
             rospy.loginfo('Waiting for utter')
             utter = self.listen_sub.wait_for_msg(timeout=20.)
             if not self._ok_baxter(utter) or len(
@@ -262,6 +267,18 @@ class SpeechPredictionController(BaseController):
         elif message.data == 'STOP experiment':
             self._stop()
 
+    def _cntxt_cb(self, msg):
+        rospy.loginfo("Rewinding context history...")
+        # Send this message if Error button was pressed by mistake
+        # if msg.data == "BadError" and self.wrong_actions:
+        #     self.wrong_actions.pop()
+        # try:
+        #     with self._ctxt_lock:
+        #         self.action_history.pop()
+        # except IndexError:
+        #     pass
+        # rospy.loginfo("New action history: {}".format(self.action_history))
+
     def _update_context(self, action):
         with self._ctxt_lock:
             self.X_dummy_cntx[self.actions_in_context.index(action)] = 0
@@ -286,7 +303,7 @@ class SpeechPredictionController(BaseController):
         "Checks Ok Baxter... is near the start of the utter"
         if utter:
             return re.search(
-                r"^(\w+\b\s){0,2}(baxter|boxer|braxter|back store| back sir|baxar|dexter)",
+                r"^(\w+\b\s){0,2}(baxter|boxer|braxter|back store| back sir|baxar|dexter|pastor|faster)",
                 utter.lower())
         else:
             return False  # than utter is probably None
