@@ -32,6 +32,8 @@ EXCLUDE = {  # Number in tuples represent trials to ignore
 
 # 10 had to abort two pieces before
 
+TRIALS = set((1, 2, 3))
+
 
 class AnalyzeData(object):
     def __init__(self, exclude):
@@ -39,12 +41,23 @@ class AnalyzeData(object):
 
     def _filter_bags(self):
         """Get relevant bags for parsing for each trial"""
+        bags_by_trial = {1: [], 2: [], 3: []}
+
         for root, dirs, filenames in os.walk(args.bag_path):
             for p in dirs:
+                try:
+                    excluded_trials = set(self.exclude[p])
+                except KeyError:
+                    excluded_trials = set(())
                 if p == "PILOTS":
                     continue
-                bags = participant_bags(args.bag_path, p)
-                filt_bags = [bags[i - 1 for i in self.exclude]]
+
+                bags = list(participant_bags(args.bag_path, p))
+
+                for i in (TRIALS - excluded_trials):
+                    bags_by_trial[i] = bags[i - 1]
+
+        return bags_by_trial
 
 
     def count_errors_across_trials(self, bag_dict):
