@@ -25,7 +25,7 @@ EXCLUDE = {  # Number in tuples represent trials to ignore
     '4.ACpCp': (1, 2, 3),
     '5.BApAp': (1, 2, 3),
     '6.BApAp': (1, 2, 3),
-    '11.ACpCp': (1, 2, 3),
+    '11.ACpCp': (1),
     '12.ACpCp': (1),
     '15.ACpCp': (1, 2, 3)
 }  # Incomplete trials
@@ -55,10 +55,9 @@ class AnalyzeData(object):
                 bags = list(participant_bags(args.bag_path, p))
 
                 for i in (TRIALS - excluded_trials):
-                    bags_by_trial[i] = bags[i - 1]
+                    bags_by_trial[i].append(bags[i - 1])
 
         return bags_by_trial
-
 
     def count_errors_across_trials(self, bag_dict):
         trial1_errors = self._bags_to_error_counts(bag_dict[1])
@@ -82,3 +81,6 @@ class AnalyzeData(object):
 
 
 args = parser.parse_args()
+
+a = AnalyzeData(EXCLUDE)
+print(a._filter_bags())
