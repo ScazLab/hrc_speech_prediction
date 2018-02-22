@@ -12,6 +12,7 @@ from hrc_speech_prediction.bag_parsing import participant_bags
 from hrc_speech_prediction.data import ALL_ACTIONS
 from hrc_speech_prediction.defaults import MODEL_PATH
 from hrc_speech_prediction.models import CombinedModel, JointModel
+from hrc_speech_prediction_msgs.msg import DataLog
 
 parser = argparse.ArgumentParser(
     "Displays the bag as a log of relevant information")
@@ -25,8 +26,8 @@ EXCLUDE = {  # Number in tuples represent trials to ignore
     '4.ACpCp': (1, 2, 3),
     '5.BApAp': (1, 2, 3),
     '6.BApAp': (1, 2, 3),
-    '11.ACpCp': (1),
-    '12.ACpCp': (1),
+    '11.ACpCp': (1, 2, 3),
+    '12.ACpCp': (1, ),
     '15.ACpCp': (1, 2, 3)
 }  # Incomplete trials
 
@@ -45,21 +46,23 @@ class AnalyzeData(object):
 
         for root, dirs, filenames in os.walk(args.bag_path):
             for p in dirs:
+                if p in ["ABORTED", "PILOTS"]:
+                    continue
                 try:
                     excluded_trials = set(self.exclude[p])
                 except KeyError:
                     excluded_trials = set(())
-                if p == "PILOTS":
-                    continue
 
                 bags = list(participant_bags(args.bag_path, p))
 
                 for i in (TRIALS - excluded_trials):
                     bags_by_trial[i].append(bags[i - 1])
+            break  # Dont want to loop through ABORTED or PILOT dirs
 
         return bags_by_trial
 
-    def count_errors_across_trials(self, bag_dict):
+    def _count_errors_across_trials(self):
+        bag_dict = self._filter_bags()
         trial1_errors = self._bags_to_error_counts(bag_dict[1])
         trial2_errors = self._bags_to_error_counts(bag_dict[2])
         trial3_errors = self._bags_to_error_counts(bag_dict[3])
@@ -71,16 +74,22 @@ class AnalyzeData(object):
             count = 0
             for m in bag.read_messages():
                 if m.topic == TOPIC:
-                    if m.result == "ERROR":
+                    if m.message.result == DataLog.FAIL:
                         count += 1
             error_counts.append(count)
         return np.array(error_counts)
 
     def plot_across_trials(self):
-        pass
+        t1, t2, t3 = self._count_errors_across_trials()
+        #data = np.concatenate()
+        plt.figure()
+        plt.title("Erros per trial")
+        plt.boxplot([t1, t2, t3])
+        plt.tight_layout()
+        plt.show()
 
 
 args = parser.parse_args()
 
 a = AnalyzeData(EXCLUDE)
-print(a._filter_bags())
+a.plot_across_trials()
