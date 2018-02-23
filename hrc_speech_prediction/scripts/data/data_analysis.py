@@ -81,10 +81,13 @@ class AnalyzeData(object):
 
     def plot_across_trials(self):
         t1, t2, t3 = self._count_errors_across_trials()
-        #data = np.concatenate()
+        print(len(t1), len(t2))
+
         plt.figure()
-        plt.title("Erros per trial")
+        plt.title("Errors per trial")
         plt.boxplot([t1, t2, t3])
+
+        plt.ylim(0, 8)
         plt.tight_layout()
         plt.show()
 
