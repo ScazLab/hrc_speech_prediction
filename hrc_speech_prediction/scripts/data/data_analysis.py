@@ -40,7 +40,7 @@ class AnalyzeData(object):
     def __init__(self, exclude):
         self.exclude = exclude
 
-    def _filter_bags(self):
+    def _filter_bags_by_trial(self):
         """Get relevant bags for parsing for each trial"""
         bags_by_trial = {1: [], 2: [], 3: []}
 
@@ -61,14 +61,31 @@ class AnalyzeData(object):
 
         return bags_by_trial
 
+    def _count_errors_by_instruction(self):
+        """Get error counts across each instruction for each trial"""
+        counts_by_instr = {1: np.zeros(20), 2: np.zeros(20), 3: np.zeros(20)}
+        bags_by_trial = self._filter_bags_by_trial()
+
+        for k in bags_by_trial.keys():
+            for b in bags_by_trial[k]:
+                i = 0
+                for m in b.read_messages():
+                    if m.topic == TOPIC:
+                        if m.message.result == DataLog.CORRECT:
+                            i += 1
+                        if m.message.result == DataLog.FAIL:
+                            counts_by_instr[k][i] += 1
+
+        return counts_by_instr
+
     def _count_errors_across_trials(self):
-        bag_dict = self._filter_bags()
-        trial1_errors = self._bags_to_error_counts(bag_dict[1])
-        trial2_errors = self._bags_to_error_counts(bag_dict[2])
-        trial3_errors = self._bags_to_error_counts(bag_dict[3])
+        bag_dict = self._filter_bags_by_trial()
+        trial1_errors = self._count_errors_by_trial(bag_dict[1])
+        trial2_errors = self._count_errors_by_trial(bag_dict[2])
+        trial3_errors = self._count_errors_by_trial(bag_dict[3])
         return trial1_errors, trial2_errors, trial3_errors
 
-    def _bags_to_error_counts(self, bags):
+    def _count_errors_by_trial(self, bags):
         error_counts = []
         for bag in bags:
             count = 0
@@ -91,8 +108,17 @@ class AnalyzeData(object):
         plt.tight_layout()
         plt.show()
 
+    def plot_across_instructions(self):
+        counts_by_instr = self._count_errors_by_instruction()
+        plt.figure()
+
+        for i in [1, 2, 3]:
+            plt.plot(counts_by_instr[i])
+
+        plt.show()
+
 
 args = parser.parse_args()
 
 a = AnalyzeData(EXCLUDE)
-a.plot_across_trials()
+a.plot_across_instructions()
