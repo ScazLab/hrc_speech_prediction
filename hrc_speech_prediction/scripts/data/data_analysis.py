@@ -63,10 +63,15 @@ class AnalyzeData(object):
 
     def _count_errors_by_instruction(self):
         """Get error counts across each instruction for each trial"""
-        counts_by_instr = {1: np.zeros(20), 2: np.zeros(20), 3: np.zeros(20)}
         bags_by_trial = self._filter_bags_by_trial()
+        counts_by_instr = {
+            1: np.zeros((20, len(bags_by_trial[1]))),
+            2: np.zeros((20, len(bags_by_trial[2]))),
+            3: np.zeros((20, len(bags_by_trial[3])))
+        }
 
         for k in bags_by_trial.keys():
+            j = 0
             for b in bags_by_trial[k]:
                 i = 0
                 for m in b.read_messages():
@@ -74,7 +79,8 @@ class AnalyzeData(object):
                         if m.message.result == DataLog.CORRECT:
                             i += 1
                         if m.message.result == DataLog.FAIL:
-                            counts_by_instr[k][i] += 1
+                            counts_by_instr[k][i][j] += 1
+                j += 1
 
         return counts_by_instr
 
@@ -110,10 +116,14 @@ class AnalyzeData(object):
 
     def plot_across_instructions(self):
         counts_by_instr = self._count_errors_by_instruction()
-        plt.figure()
 
-        for i in [1, 2, 3]:
-            plt.plot(counts_by_instr[i])
+        fig, axarr = plt.subplots(3, sharex=True, sharey=True)
+
+        plt.suptitle("Errors per instruction", fontsize=20)
+
+        for i in range(3):
+            bp = axarr[i].boxplot(np.transpose(counts_by_instr[i + 1]))
+            axarr[i].set_title("Trial {}".format(i + 1))
 
         plt.show()
 
