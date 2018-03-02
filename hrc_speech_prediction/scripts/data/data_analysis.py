@@ -4,11 +4,8 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import stats
-from sklearn.externals import joblib
 from sklearn.linear_model import SGDClassifier
 
-import rosbag
-import rospy
 from hrc_speech_prediction.bag_parsing import participant_bags
 from hrc_speech_prediction.data import ALL_ACTIONS
 from hrc_speech_prediction.defaults import MODEL_PATH
@@ -101,7 +98,7 @@ class AnalyzeData(object):
                     if filter_by == "trial":
                         bags_dict[i].append(bags[i - 1])
                     elif filter_by == "participant":
-                        if not p in bags_dict.keys():
+                        if p not in bags_dict.keys():
                             bags_dict[p] = []
 
                         bags_dict[p].append(bags[i - 1])
@@ -191,7 +188,7 @@ class AnalyzeData(object):
         plt.ylabel(r'Mean errors', fontsize=20, fontweight='bold')
 
         plt.xlim(.6, 21.3)
-        #plt.ylim(-.8, 2)
+        # plt.ylim(-.8, 2)
 
         x = np.arange(1, 22, 1.05)
         self._simplify_plot(plt.gca())
@@ -230,57 +227,81 @@ class AnalyzeData(object):
         plt.suptitle("Errors per instruction", fontsize=20)
 
         for i in range(3):
-            bp = axarr[i].boxplot(np.transpose(counts_by_instr[i + 1]))
+            axarr[i].boxplot(np.transpose(counts_by_instr[i + 1]))
             axarr[i].set_title("Trial {}".format(i + 1))
 
         plt.savefig(
             os.path.join(SAVE_PATH, "boxes_per_instruction_one_plot.pdf"))
         plt.show()
 
-    def plot_model_performances(self):
+    def _get_model(self, participant, trial):
+        if trial == 0:
+            model_type = "model_initial"
+            t = 0
+        else:
+            model_type = "model_final"
+            t = trial - 1
+        model_path = os.path.join(args.model_path, participant,
+                                  str(t), model_type)
+        return CombinedModel.load_from_path(
+            model_path, ALL_ACTIONS,
+            JointModel.model_generator(SGDClassifier,
+                                       **SPEECH_MODEL_PARAMETERS),
+            SPEECH_EPS, CONTEXT_EPS)
+
+    def print_model_performances(self):
         bag_dict = self._filter_bags()
         participant_bags = bag_dict.keys()
 
+        print("Format: both, speech, context; score is number of correct")
         for p, bags in participant_bags.iteritems():
-            for trial, bag in enumerate(bags)
-                if trial == 0:
-                    model_type = "model_initial"
-                else:
-                    model_type = "model_final"
-
-                model_path = os.path.join(args.model_path, p,
-                                        str(trial + 1), model_type)
-
-                model = CombinedModel.load_from_path(
-                    model_path, ALL_ACTIONS,
-                    JointModel.model_generator(SGDClassifier,
-                                            **SPEECH_MODEL_PARAMETERS),
-                    SPEECH_EPS, CONTEXT_EPS)
+            for trial, bag in enumerate(bags):
+                model = self._get_model(p, trial)
 
                 cntxt = []
 
+                i = 0
                 both_score = 0
-                speech_score = 0 
+                speech_score = 0
                 context_score = 0
 
-                success_tracker = True
+                last_pred_speech = None
+                last_pred_context = None
+
+                was_success = True
 
                 for m in bag.read_messages():
                     if m.topic == TOPIC:
-                        utter = m.message.utter
-                        if m.message.result == DataLog.CORRECT:
-                            both_score += 1
-                        model.predict(cntxt, m.message.utter, plot=True)
+                        if was_success:
+                            # New prediction result
+                            was_success = False
+                            if m.message.result == DataLog.CORRECT:
+                                both_score += 1
+                            last_pred_speech = model.predict(
+                                cntxt, m.message.utter, model='speech',
+                                plot=False)
+                            last_pred_context = model.predict(
+                                cntxt, m.message.utter, model='context',
+                                plot=False)
 
-                        cntxt.append(m.message.action)
-                        i += 1
+                        if ((not was_success) and
+                                m.message.result == DataLog.CORRECT):
+                            # Resolve last speech and context prediction
+                            # Might happen in the same run as the previous case
+                            ground_truth = m.message.action
+                            speech_score += (ground_truth == last_pred_speech)
+                            context_score += (ground_truth == last_pred_context)
+                            last_pred_speech, last_pred_context = None, None
+                            was_success = True
+                            cntxt.append(ground_truth)
+                            i += 1
 
-                        plt.tight_layout()
+                if (last_pred_speech is not None or
+                        last_pred_context is not None):
+                    raise RuntimeError("Last predictino not resolved")
 
-                        path = os.path.join(fig_path, "sample_{}_{}".format(
-                            m.message.result, i))
-                        plt.savefig(path, format="pdf")
-                        plt.clf()
+            print("{} / {}: {} {} {} / {}".format(
+                p, trial, both_score, speech_score, context_score, i))
 
 
 args = parser.parse_args()
@@ -289,4 +310,5 @@ with plt.rc_context(rc=PLOT_PARAMS):
     a = AnalyzeData(EXCLUDE)
     # a.plot_errs_across_instructions()
     print(len(a._filter_bags(filter_by="participant").keys()))
-    #a.plot_across_trials()
+    # a.plot_across_trials()
+    a.print_model_performances()
