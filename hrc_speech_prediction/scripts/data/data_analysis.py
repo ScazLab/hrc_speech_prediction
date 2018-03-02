@@ -28,7 +28,8 @@ EXCLUDE = {  # Number in tuples represent trials to ignore
     '6.BApAp': (1, 2, 3),
     '11.ACpCp': (1, 2, 3),
     '12.ACpCp': (1, 2, 3),
-    '15.ACpCp': (1, 2, 3)
+    '15.ACpCp': (1, 2, 3),
+    '10.CBpBp': (1, 2, 3),
 }  # Incomplete trials
 
 # 10 had to abort two pieces before
@@ -242,7 +243,7 @@ class AnalyzeData(object):
             model_type = "model_final"
             t = trial - 1
         model_path = os.path.join(args.model_path, participant,
-                                  str(t), model_type)
+                                  str(t + 1), model_type)
         return CombinedModel.load_from_path(
             model_path, ALL_ACTIONS,
             JointModel.model_generator(SGDClassifier,
@@ -250,20 +251,23 @@ class AnalyzeData(object):
             SPEECH_EPS, CONTEXT_EPS)
 
     def print_model_performances(self):
-        bag_dict = self._filter_bags()
+        bag_dict = self._filter_bags(filter_by="participant")
         participant_bags = bag_dict.keys()
+        
+        errors_per_trial = []
 
         print("Format: both, speech, context; score is number of correct")
-        for p, bags in participant_bags.iteritems():
+        for p, bags in bag_dict.iteritems():
+            errors = np.zeros((3, 3))
             for trial, bag in enumerate(bags):
                 model = self._get_model(p, trial)
 
                 cntxt = []
 
                 i = 0
-                both_score = 0
-                speech_score = 0
-                context_score = 0
+                both_errors = 0
+                speech_errors = 0
+                context_errors = 0
 
                 last_pred_speech = None
                 last_pred_context = None
@@ -275,12 +279,11 @@ class AnalyzeData(object):
                         if was_success:
                             # New prediction result
                             was_success = False
-                            if m.message.result == DataLog.CORRECT:
-                                both_score += 1
-                            last_pred_speech = model.predict(
+                            both_errors += (m.message.result != DataLog.CORRECT)
+                            last_pred_speech, _ = model.predict(
                                 cntxt, m.message.utter, model='speech',
                                 plot=False)
-                            last_pred_context = model.predict(
+                            last_pred_context, _ = model.predict(
                                 cntxt, m.message.utter, model='context',
                                 plot=False)
 
@@ -289,8 +292,8 @@ class AnalyzeData(object):
                             # Resolve last speech and context prediction
                             # Might happen in the same run as the previous case
                             ground_truth = m.message.action
-                            speech_score += (ground_truth == last_pred_speech)
-                            context_score += (ground_truth == last_pred_context)
+                            speech_errors += (ground_truth != last_pred_speech)
+                            context_errors += (ground_truth != last_pred_context)
                             last_pred_speech, last_pred_context = None, None
                             was_success = True
                             cntxt.append(ground_truth)
@@ -298,10 +301,16 @@ class AnalyzeData(object):
 
                 if (last_pred_speech is not None or
                         last_pred_context is not None):
-                    raise RuntimeError("Last predictino not resolved")
+                    raise RuntimeError("Last prediction not resolved (i: {})".format(i))
 
-            print("{} / {}: {} {} {} / {}".format(
-                p, trial, both_score, speech_score, context_score, i))
+                errors[trial, :] = [both_errors, speech_errors, context_errors]
+                print("{} / {}: {} {} {} / {}".format(
+                    p, trial, both_errors, speech_errors, context_errors, i))
+
+            errors_per_trial.append(errors)
+        errors_per_trial = np.array(errors_per_trial)
+        print(np.average(errors_per_trial, axis=0))
+        print(np.std(errors_per_trial, axis=0))
 
 
 args = parser.parse_args()
