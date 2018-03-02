@@ -35,10 +35,31 @@ SPEECH_MODEL_PARAMETERS = {
     'penalty': 'l2',
 }
 
+PLOT_PARAMS = {
+    'font.family': 'serif',
+    'font.size': 10.0,
+    'font.serif': 'Computer Modern Roman',
+    'text.usetex': 'True',
+    'text.latex.unicode': 'True',
+    'axes.titlesize': 'large',
+    'axes.labelsize': 'large',
+    'legend.fontsize': 'medium',
+    'xtick.labelsize': 'small',
+    'ytick.labelsize': 'small',
+    'path.simplify': 'True',
+    'savefig.bbox': 'tight',
+    'figure.figsize': (7.5, 4),
+}
+
 
 def plot_trial(trial, bag):
+    if trial == 1:
+        model_type = "model_initial"
+    else:
+        model_type = "model_final"
+
     model_path = os.path.join(args.model_path, args.participant, str(trial),
-                              "model_initial")
+                              model_type)
     fig_path = os.path.join(
         os.path.dirname(__file__), "figs", args.participant, str(trial))
 
@@ -68,7 +89,7 @@ def plot_trial(trial, bag):
 
             path = os.path.join(fig_path, "sample_{}_{}".format(
                 m.message.result, i))
-            plt.savefig(path, format="svg")
+            plt.savefig(path, format="pdf")
             plt.clf()
 
 
