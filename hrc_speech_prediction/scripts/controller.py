@@ -270,13 +270,20 @@ class SpeechPredictionController(BaseController):
         rospy.loginfo("Rewinding context history...")
         rospy.loginfo("Old action history: {}".format(self.action_history))
         # Send this message if Error button was pressed by mistake
-        if msg.data == "R" and self.wrong_actions:
-            self.wrong_actions.pop()
-        try:
-            with self._ctxt_lock:
-                self.action_history.pop()
-        except IndexError:
-            pass
+        if msg.data.lower() == "r" and self.wrong_actions:
+            try:
+                self.wrong_actions.pop()
+            except IndexError:
+                rospy.logerr(
+                    "No previous wrong actions. Nothing has been removed.")
+        elif msg.data.lower == 'g':
+            try:
+                with self._ctxt_lock:
+                    self.action_history.pop()
+            except IndexError:
+                rospy.logerr(
+                    "No previous action history. Nothing has been removed.")
+
         rospy.loginfo("New action history: {}".format(self.action_history))
 
     def _update_context(self, action):

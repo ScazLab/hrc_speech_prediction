@@ -7,6 +7,13 @@ import numpy as np
 from scipy.signal import savgol_filter
 
 
+def simplify_plot(ax):
+    ax.spines['top'].set_visible(False)
+    ax.tick_params(top=False)
+    ax.spines['right'].set_visible(False)
+    ax.tick_params(right=False)
+
+
 def get_n_colors(n, color_map=None):
     if color_map is None:
         color_map = plt.get_cmap()
@@ -65,7 +72,10 @@ def plot_predict_proba(probas,
     ticks = ax.set_xticklabels(classes, rotation=70, ha='right')
     if truth is not None:
         ticks[classes.index(truth)].set_weight('black')
+
     ax.set_xlim(0, len(classes))
-    ax.set_title("\n".join(wrap(u'“' + utterance + u'”', 40)), fontsize="9")
+    ax.set_title("\n".join(wrap(u'“' + utterance + u'”', 70)), fontsize="11")
+    simplify_plot(ax)
+
     if model_names is not None:
         ax.legend(model_names)
