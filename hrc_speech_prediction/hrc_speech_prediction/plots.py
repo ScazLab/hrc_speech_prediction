@@ -77,5 +77,7 @@ def plot_predict_proba(probas,
     ax.set_title("\n".join(wrap(u'“' + utterance + u'”', 70)), fontsize="11")
     simplify_plot(ax)
 
+    plt.xlabel("Actions")
+    plt.ylabel("Probability")
     if model_names is not None:
         ax.legend(model_names)

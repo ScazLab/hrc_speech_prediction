@@ -89,7 +89,7 @@ def plot_trial(trial, bag):
 
             path = os.path.join(fig_path, "sample_{}_{}".format(
                 m.message.result, i))
-            plt.savefig(path, format="pdf")
+            plt.savefig(path + ".pdf", format="pdf")
             plt.clf()
 
 

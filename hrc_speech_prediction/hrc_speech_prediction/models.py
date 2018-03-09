@@ -225,6 +225,7 @@ class CombinedModel(object):
             context_probs = self.get_context_probs(cntxt)
             speech_probs = self.get_speech_probs(utter)
             probs = np.multiply(context_probs, speech_probs)
+            probs = probs / np.sum(probs)
         else:
             raise "Error, bad inputs to predict()!"
 
