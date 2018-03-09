@@ -151,7 +151,7 @@ class SpeechPredictionController(BaseController):
         rospy.Subscriber(self.WEB_TOPIC, String, self._web_interface_cb)
         # Allows us to delete context from action_history manually if
         # incorrect action was taken
-        # rospy.Subscriber(self.CONTEXT_TOPIC, String, self._cntxt_cb)
+        rospy.Subscriber(self.CONTEXT_TOPIC, String, self._cntxt_cb)
         # Start and stop rosbag recording automatically
         # When controller starts and stops respectively.
         self.rosbag_start = rospy.ServiceProxy(self.ROSBAG_START, Empty)
@@ -176,7 +176,6 @@ class SpeechPredictionController(BaseController):
         while not self.finished:
             # Logs the outcome of each speech/action pair
             self.log_msg = DataLog()
-            rospy.loginfo('Curr context {}'.format(self.action_history))
             rospy.loginfo('Waiting for utter')
             utter = self.listen_sub.wait_for_msg(timeout=20.)
             if not self._ok_baxter(utter) or len(
@@ -269,15 +268,23 @@ class SpeechPredictionController(BaseController):
 
     def _cntxt_cb(self, msg):
         rospy.loginfo("Rewinding context history...")
+        rospy.loginfo("Old action history: {}".format(self.action_history))
         # Send this message if Error button was pressed by mistake
-        # if msg.data == "BadError" and self.wrong_actions:
-        #     self.wrong_actions.pop()
-        # try:
-        #     with self._ctxt_lock:
-        #         self.action_history.pop()
-        # except IndexError:
-        #     pass
-        # rospy.loginfo("New action history: {}".format(self.action_history))
+        if msg.data.lower() == "r" and self.wrong_actions:
+            try:
+                self.wrong_actions.pop()
+            except IndexError:
+                rospy.logerr(
+                    "No previous wrong actions. Nothing has been removed.")
+        elif msg.data.lower == 'g':
+            try:
+                with self._ctxt_lock:
+                    self.action_history.pop()
+            except IndexError:
+                rospy.logerr(
+                    "No previous action history. Nothing has been removed.")
+
+        rospy.loginfo("New action history: {}".format(self.action_history))
 
     def _update_context(self, action):
         with self._ctxt_lock:

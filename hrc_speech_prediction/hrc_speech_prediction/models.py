@@ -224,10 +224,10 @@ class CombinedModel(object):
         elif model == "both" and utter is not None:
             context_probs = self.get_context_probs(cntxt)
             speech_probs = self.get_speech_probs(utter)
+            probs = np.multiply(context_probs, speech_probs)
+            probs = probs / np.sum(probs)
         else:
             raise "Error, bad inputs to predict()!"
-
-        probs = np.multiply(context_probs, speech_probs)
 
         action = self.get_probable_action(probs, exclude)
         # self.curr = self.curr._get_next_node(action)
