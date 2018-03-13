@@ -19,22 +19,17 @@ class TestNode(TestCase):
         x = Node()
         x.get_or_add_node(self.empty_context)
         self.assertEqual(x.n_children, 0)
-      
         x.get_or_add_node(self.context)
         self.assertEqual(x.n_children, 1)
-
         x.get_or_add_node(self.context)
         self.assertEqual(x.n_children, 1)
-
         x.get_or_add_node(['b','c'])
         self.assertEqual(x.n_children, 2)
-
         self.assertEqual(x.n_children, len(x._children))
 
     def test_add_new_node_adds_child(self):
         x = Node()
         x.get_or_add_node(self.context)
-
         self.assertIn(self.context[0], x.seen_children)
         self.assertIn(self.context[1], x.get_or_add_node(self.context[:1]).seen_children)
         self.assertIn(self.context[2], x.get_or_add_node(self.context[:2]).seen_children)
