@@ -15,6 +15,11 @@ class TestNode(TestCase):
     def test_empty_has_zero_n_children(self):
         self.x = Node()
         self.assertEqual(self.x.n_children, 0)
+
+        #delete this
+        self.x.get_or_add_node([])
+        print("Hello")
+        print(self.x.n_children)
         #no deletion code
         # self.x.get_or_add_node(self.contxt)
 
@@ -49,7 +54,7 @@ class TestNode(TestCase):
         self.x = Node()
         self.assertEqual(self.x._count,0)
         self.branch = self.x.add_branch(self.context)
-        self.assertEqual(self.branch._count, 1)
+        self.assertEqual(self.      branch._count, 1)
         self.branch = self.x.add_branch(self.context)
         self.assertEqual(self.branch._count, 2)
 
@@ -62,15 +67,24 @@ class TestContextTreeModel(TestCase):
         self.model = ContextTreeModel(ALL_ACTIONS)
         self.model.fit([[], [], ["a"], ["z", "b", "c"]], ["a", "a", "b", "d"])
 
-    # # def test_n_children(self):
-    #     self.assertEqual(self.model.root.n_children, 2)
+    def test_n_children(self):
+        self.assertEqual(self.model.root.n_children, 2)
 
-    # def test_fit_raises_exception_on_context_action_mismatch(self):
-    #     raise NotImplementedError
+    def test_fit_raises_exception_on_context_action_mismatch(self):
+    #     #test that this raises a value error
+        self.assertRaises(ValueError, self.model.fit, [[], ['b'], ['c']], ['a','b'])
 
-    # def test_fit_empty_lists_does_nothing(self):
-    #     raise NotImplementedError
 
+        # raise NotImplementedError
+
+    def test_fit_empty_lists_does_nothing(self):
+        self.old_modelroot = self.model.root
+        self.model.fit([], [])
+        # self.model.fit([['a']], ['b'])
+        self.assertEqual(self.model.root.n_children, self.old_modelroot.n_children)
+        for i in range(len(self.model.root._children.keys())):
+            key = self.model.root._children.keys()[i]
+            self.assertEqual(self.model.root._children[key]._count, self.old_modelroot._children[key]._count)
     # def test_fit_one(self):
     #     raise NotImplementedError
 
