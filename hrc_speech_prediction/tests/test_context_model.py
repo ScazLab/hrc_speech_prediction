@@ -107,6 +107,10 @@ class TestContextTreeModel(TestCase):
         newTree.fit([[], [], ["a"]], ["a", "a", "b"])
         self.assertFalse(newTree.root == self.model.root)
         newTree.fit([ ["z", "b", "c"]], ["d"])
-        self.assertTrue(newTree.root ==self.model.root)
+        self.assertTrue(newTree.root == self.model.root)
+        empty.add_branch(['a','b','c'])
+        empty2.add_branch(['a','b','c'])
+        empty2._count+=1;
+        self.assertFalse(empty == empty2)
 
 

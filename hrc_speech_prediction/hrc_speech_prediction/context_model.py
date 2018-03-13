@@ -58,8 +58,8 @@ class Node(object):
     def __eq__(self, other):
         if self.n_children == 0 and other.n_children == 0:
             return True
-        # test for same number of children
-        if self.n_children == other.n_children:
+        # test for same number of children and count in root
+        if self.n_children == other.n_children and self._count == other._count:
             for key in self._children:
                 # test for same keys
                 if key not in other.seen_children:
