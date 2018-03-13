@@ -109,9 +109,14 @@ class TestContextTreeModel(TestCase):
             self.assertEqual(prediction[i], prediction[i+1])
 
     def test_equals(self):
-        # empty = ContextTreeModel(ALL_ACTIONS)
-        # empty2 = ContextTreeModel(ALL_ACTIONS)
-        # self.assertEqual(empty, empty2)
         empty = Node()
         empty2 = Node()
         self.assertEqual(empty, empty2)
+        newTree = ContextTreeModel(ALL_ACTIONS)
+        self.assertFalse(newTree.root == self.model.root)
+        newTree.fit([[], [], ["a"]], ["a", "a", "b"])
+        self.assertFalse(newTree.root == self.model.root)
+        newTree.fit([ ["z", "b", "c"]], ["d"])
+        self.assertTrue(newTree.root ==self.model.root)
+
+
