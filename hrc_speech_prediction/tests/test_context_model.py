@@ -6,7 +6,6 @@ from hrc_speech_prediction.context_model import ContextTreeModel, Node
 import copy
 
 class TestNode(TestCase):
-
     def setUp(self):
         self.empty_context = []
         self.context = ['a','b','c']
@@ -64,11 +63,15 @@ class TestContextTreeModel(TestCase):
 
     def test_fit_empty_lists_does_nothing(self):
         self.old_modelroot = copy.deepcopy(self.model.root)
+        self.assertEqual(self.old_modelroot, self.model.root)
+
         self.model.fit([], [])
         self.assertEqual(self.model.root.n_children, self.old_modelroot.n_children)
-        for i in range(len(self.model.root._children.keys())):
-            key = self.model.root._children.keys()[i]
-            self.assertEqual(self.model.root._children[key]._count, self.old_modelroot._children[key]._count)
+        #will be replaced by assertEqual(old_modelroot, self.model.root)
+        self.assertEqual(self.old_modelroot, self.model.root)
+        # for i in range(len(self.model.root._children.keys())):
+        #     key = self.model.root._children.keys()[i]
+        #     self.assertEqual(self.model.root._children[key]._count, self.old_modelroot._children[key]._count)
    
     def test_fit_one(self):
         fit_one = ContextTreeModel(ALL_ACTIONS)
@@ -104,3 +107,11 @@ class TestContextTreeModel(TestCase):
         prediction = empty.predict(["A"])
         for i in range(len(prediction)-1):
             self.assertEqual(prediction[i], prediction[i+1])
+
+    def test_equals(self):
+        # empty = ContextTreeModel(ALL_ACTIONS)
+        # empty2 = ContextTreeModel(ALL_ACTIONS)
+        # self.assertEqual(empty, empty2)
+        empty = Node()
+        empty2 = Node()
+        self.assertEqual(empty, empty2)

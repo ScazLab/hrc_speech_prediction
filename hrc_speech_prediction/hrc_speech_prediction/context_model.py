@@ -55,6 +55,34 @@ class Node(object):
         self._count += 1.0
         return self
 
+    def __eq__(self, other):
+        if self.n_children == 0 and other.n_children == 0:
+            return True
+        #test for same number of children
+        if self.n_children == other.n_children:
+            print(self.n_children)
+            for key in self._children:
+                # test for same keys
+                print(key)
+                if key not in other.seen_children:
+                    return False
+                print(other.seen_children)
+                # test for same count
+                if self._children[key]._count != other._children[key]._count:
+                    return False
+                print(other._children[key]._count)
+
+                # test for same children, can't be == cuz not defined yet
+                if not self._children[key].__eq__(other._children[key]):
+                    return False
+
+        else:
+            print("not same")
+            return False
+        print("hello")
+        return True
+
+
     def get_or_add_node(self, cntxt):
         if not cntxt:
             return self
