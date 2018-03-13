@@ -1,7 +1,6 @@
 import argparse
 import os
 
-import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.externals import joblib
 from sklearn.preprocessing import normalize
@@ -235,11 +234,8 @@ class CombinedModel(object):
         if plot and model == "both":
             all_probs = np.vstack((speech_probs, context_probs, probs))
             names = ["Speech", "Context", "Combined"]
-
-            # plt.gcf().clear()
             plots.plot_predict_proba(
                 all_probs, self.actions, utter, model_names=names, ax=ax)
-            # plt.show(block=False)
         if return_probs and model == "both":
             return action, speech_probs, context_probs, probs
         else:
