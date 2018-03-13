@@ -85,9 +85,8 @@ class TestContextTreeModel(TestCase):
 
     def test_total_of_counts_incremented_by_one_after_fit_one(self):
         fit_one = ContextTreeModel(ALL_ACTIONS)
-        old_sum = fit_one.root.sum_children_counts
         fit_one.fit([["a"]], ["b"])
-        self.assertEqual(fit_one.root.sum_children_counts + 1, old_sum)
+        self.assertEqual(fit_one.root._children["a"].sum_children_counts, 1)
 
     def test_predict_returns_array_of_correct_size(self):
         self.assertEqual(len(self.model.actions), len(self.model.predict(["a"])))

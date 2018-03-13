@@ -67,14 +67,13 @@ class Node(object):
                 # test for same count
                 if self._children[key]._count != other._children[key]._count:
                     return False
-                # test for same children, can't be == cuz not defined yet
+                # test for same children, can't be == because not defined yet
                 if not self._children[key].__eq__(other._children[key]):
                     return False
 
         else:
             return False
         return True
-
 
     def get_or_add_node(self, cntxt):
         if not cntxt:
