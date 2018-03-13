@@ -46,7 +46,6 @@ class TestNode(TestCase):
         self.assertEqual(branch._count, 1)
         branch = x.add_branch(self.context)
         self.assertEqual(branch._count, 2)
-
         self.assertEqual(x._children['a']._children['b']._count, 0)
         branch = x.add_branch(['a','b'])
         self.assertEqual(branch._count, 1)
@@ -70,17 +69,35 @@ class TestContextTreeModel(TestCase):
             key = self.model.root._children.keys()[i]
             self.assertEqual(self.model.root._children[key]._count, self.old_modelroot._children[key]._count)
    
-    # def test_fit_one(self):
-    #     raise NotImplementedError
+    def test_fit_one(self):
+        fit_one = ContextTreeModel(ALL_ACTIONS)
+        fit_one.fit([["a"]], ["b"])
+        self.assertEqual(fit_one.root.seen_children, ["a"])
+        self.assertTrue("b" in fit_one.root._children["a"].seen_children)
 
-    # def test_fit_several(self):
-    #     raise NotImplementedError
 
-    # def test_total_of_counts_incremented_by_one_after_fit_one(self):
-    #     raise NotImplementedError
+    def test_fit_several(self):
+        self.assertTrue("a" and "z" in self.model.root.seen_children)
+        self.assertTrue("b" in self.model.root._children["a"].seen_children)
+        self.assertTrue("b" in self.model.root._children["z"].seen_children)
+        self.assertTrue("d" in self.model.root._children["z"]._children["b"]._children["c"].seen_children)
+        
+        self.assertFalse("c" in self.model.root.seen_children)
+        self.assertEqual(2, self.model.root._children["a"]._count)
+        self.assertEqual(1, self.model.root._children["a"]._children["b"]._count)
 
-    # def test_predict_returns_array_of_correct_size(self):
-    #     raise NotImplementedError
+    def test_total_of_counts_incremented_by_one_after_fit_one(self):
+        fit_one = ContextTreeModel(ALL_ACTIONS)
+        old_sum = fit_one.root.sum_children_counts
+        fit_one.fit([["a"]], ["b"])
+        self.assertEqual(fit_one.root.sum_children_counts + 1, old_sum)
 
-    # def test_empty_predicts_uniform(self):
-    #     raise NotImplementedError
+    def test_predict_returns_array_of_correct_size(self):
+        self.assertEqual(len(self.model.actions), len(self.model.predict(["a"])))
+        self.assertEqual(len(self.model.actions), len(self.model.predict(["b"])))
+
+    def test_empty_predicts_uniform(self):
+        empty = ContextTreeModel(ALL_ACTIONS)
+        prediction = empty.predict(["A"])
+        for i in range(len(prediction)-1):
+            self.assertEqual(prediction[i], prediction[i+1])
