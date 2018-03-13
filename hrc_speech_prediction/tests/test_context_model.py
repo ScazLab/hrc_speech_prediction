@@ -3,6 +3,7 @@ from unittest import TestCase
 from hrc_speech_prediction.data import ALL_ACTIONS
 from hrc_speech_prediction.context_model import ContextTreeModel, Node
 
+import copy
 
 class TestNode(TestCase):
 
@@ -21,7 +22,7 @@ class TestNode(TestCase):
         self.assertEqual(x.n_children, 0)
       
         x.get_or_add_node(self.context)
-        self.assertEqual(x.n_children,1)
+        self.assertEqual(x.n_children, 1)
 
         x.get_or_add_node(self.context)
         self.assertEqual(x.n_children, 1)
@@ -35,13 +36,14 @@ class TestNode(TestCase):
         x = Node()
         x.get_or_add_node(self.context)
 
-        self.assertTrue(self.context[0] in x._children.keys())
-        self.assertTrue(self.context[1] in x._children[self.context[0]]._children.keys())
-        self.assertTrue(self.context[2] in x._children[self.context[0]]._children[self.context[1]]._children.keys())
+        # self.assertIn(self.context[0], x.seen_children())
+        #self.assertIn(self.context[1], x._children[x.get_or_add_node(self.context[:1])].seen_children())
+        #self.assertIn(self.context[2], x._children[x.get_or_add_node(self.context[:1])]._children[self.get_or_add_node(self.context[:2]).seen_children()])
+
 
     def test_add_branch_increments_count(self):
         x = Node()
-        self.assertEqual(x._count,0)
+        self.assertEqual(x._count, 0)
         branch = x.add_branch(self.context)
         self.assertEqual(branch._count, 1)
         branch = x.add_branch(self.context)
@@ -62,7 +64,7 @@ class TestContextTreeModel(TestCase):
         self.assertRaises(ValueError, self.model.fit, [[], ['b'], ['c']], ['a','b'])
 
     def test_fit_empty_lists_does_nothing(self):
-        self.old_modelroot = self.model.root
+        self.old_modelroot = copy.deepcopy(self.model.root)
         self.model.fit([], [])
         self.assertEqual(self.model.root.n_children, self.old_modelroot.n_children)
         for i in range(len(self.model.root._children.keys())):
