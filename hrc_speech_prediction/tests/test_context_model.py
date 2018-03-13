@@ -36,10 +36,9 @@ class TestNode(TestCase):
         x = Node()
         x.get_or_add_node(self.context)
 
-        # self.assertIn(self.context[0], x.seen_children())
-        #self.assertIn(self.context[1], x._children[x.get_or_add_node(self.context[:1])].seen_children())
-        #self.assertIn(self.context[2], x._children[x.get_or_add_node(self.context[:1])]._children[self.get_or_add_node(self.context[:2]).seen_children()])
-
+        self.assertIn(self.context[0], x.seen_children)
+        self.assertIn(self.context[1], x.get_or_add_node(self.context[:1]).seen_children)
+        self.assertIn(self.context[2], x.get_or_add_node(self.context[:2]).seen_children)
 
     def test_add_branch_increments_count(self):
         x = Node()
@@ -79,10 +78,12 @@ class TestContextTreeModel(TestCase):
 
 
     def test_fit_several(self):
-        self.assertTrue("a" and "z" in self.model.root.seen_children)
-        self.assertTrue("b" in self.model.root._children["a"].seen_children)
-        self.assertTrue("b" in self.model.root._children["z"].seen_children)
-        self.assertTrue("d" in self.model.root._children["z"]._children["b"]._children["c"].seen_children)
+        self.assertIn("a", self.model.root.seen_children)
+        self.assertIn("z", self.model.root.seen_children)
+
+        self.assertIn("b", self.model.root._children["a"].seen_children)
+        self.assertIn("b", self.model.root._children["z"].seen_children)
+        self.assertIn("d", self.model.root._children["z"]._children["b"]._children["c"].seen_children)
         
         self.assertFalse("c" in self.model.root.seen_children)
         self.assertEqual(2, self.model.root._children["a"]._count)
