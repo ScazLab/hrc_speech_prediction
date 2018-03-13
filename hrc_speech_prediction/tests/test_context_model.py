@@ -64,14 +64,10 @@ class TestContextTreeModel(TestCase):
     def test_fit_empty_lists_does_nothing(self):
         self.old_modelroot = copy.deepcopy(self.model.root)
         self.assertEqual(self.old_modelroot, self.model.root)
-
         self.model.fit([], [])
         self.assertEqual(self.model.root.n_children, self.old_modelroot.n_children)
-        #will be replaced by assertEqual(old_modelroot, self.model.root)
         self.assertEqual(self.old_modelroot, self.model.root)
-        # for i in range(len(self.model.root._children.keys())):
-        #     key = self.model.root._children.keys()[i]
-        #     self.assertEqual(self.model.root._children[key]._count, self.old_modelroot._children[key]._count)
+        
    
     def test_fit_one(self):
         fit_one = ContextTreeModel(ALL_ACTIONS)
