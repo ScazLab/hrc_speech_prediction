@@ -45,6 +45,11 @@ cache:
 - apt
 notifications:
   email: false
+  slack:
+    rooms:
+    - secure: Hndnes4drpns4RJpfcwUp/mJectEzTBWm9zJlHSlI2oaXULgaBEwLZkHXGF1BPKdgasCs6TlUjWMpO7lM3Zy9QPR+4icOWQDp93QcGcRYXNM0ycf/btlMX5C7wB6/hZ+ShgYW8Ju8dvIpi564y8404HUefAydr3pVAUTkLT39OJErqcFSlYmQW6x3BiXpPF3sWWH/oZx1vwyC4F3IrCucEDKW8nMHwSQxv3iH1YGc17ogtu/lmPM28JugUAo1jK9YZgAmPG+mYc1+C8bkPbKaK2GJDxSTCLfpamO2k5j6b0YpFLDXdZ7HIr9OpNamwc6nBNhNC4J0GYwoERxst8vm0lB3YLK7bDBwMwQ7ShOz+IM8M3H8NF3EkU89R9DfTPnShZtrb8qMLlOnekNuuaD2jKtpJ+n/mTVJXZKpbfrbJzNrW1uXl0Cf8GLBhOL977uWxpJcO5aTwyPQw809VuHP5ANsHvYVq12W778/VCLVUmgMmUFLSnfBEmD9et5i8PrfVD02CRV+2GSni+N7yy6R+4CPh0/wDzamZe4xcQwFIp4YyqpzXPhxfnR/jWBl56XHwZzwJVCUn4fnDuWe0xHB07pQYVWVG+jb6diiDK2k0dOkB2W7UiyL3mi+Qc+XKuHqz7bGvyCY2OLw2uIDA4wsrpatFIrh2qiunSYe4YEzw8=
+    on_success: change
+    on_failure: always
 env:
   global:
   - ROS_CI_DESKTOP="`lsb_release -cs`"
