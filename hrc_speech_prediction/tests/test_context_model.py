@@ -62,8 +62,8 @@ class TestContextTreeModel(TestCase):
         self.model.fit([], [])
         self.assertEqual(self.model.root.n_children, self.old_modelroot.n_children)
         self.assertEqual(self.old_modelroot, self.model.root)
-        
-   
+
+
     def test_fit_one(self):
         fit_one = ContextTreeModel(ALL_ACTIONS)
         fit_one.fit([["a"]], ["b"])
@@ -78,7 +78,7 @@ class TestContextTreeModel(TestCase):
         self.assertIn("b", self.model.root._children["a"].seen_children)
         self.assertIn("b", self.model.root._children["z"].seen_children)
         self.assertIn("d", self.model.root._children["z"]._children["b"]._children["c"].seen_children)
-        
+
         self.assertFalse("c" in self.model.root.seen_children)
         self.assertEqual(2, self.model.root._children["a"]._count)
         self.assertEqual(1, self.model.root._children["a"]._children["b"]._count)
@@ -103,14 +103,14 @@ class TestContextTreeModel(TestCase):
         empty2 = Node()
         self.assertEqual(empty, empty2)
         newTree = ContextTreeModel(ALL_ACTIONS)
-        self.assertFalse(newTree.root == self.model.root)
+        self.assertNotEqual(newTree.root, self.model.root)
         newTree.fit([[], [], ["a"]], ["a", "a", "b"])
-        self.assertFalse(newTree.root == self.model.root)
-        newTree.fit([ ["z", "b", "c"]], ["d"])
-        self.assertTrue(newTree.root == self.model.root)
+        self.assertNotEqual(newTree.root, self.model.root)
+        newTree.fit([["z", "b", "c"]], ["d"])
+        self.assertEqual(newTree.root, self.model.root)
         empty.add_branch(['a','b','c'])
         empty2.add_branch(['a','b','c'])
         empty2._count+=1;
-        self.assertFalse(empty == empty2)
+        self.assertNotEqual(empty, empty2)
 
 
