@@ -8,7 +8,7 @@ from hrc_speech_prediction.models import (JointModel,
                                           get_path_from_cli_arguments)
 from hrc_speech_prediction.plots import plot_incremental_scores
 
-N_GRAMS = (1, 2)
+N_GRAMS = (1, 3)
 TFIDF = False
 
 working_path = get_path_from_cli_arguments()
