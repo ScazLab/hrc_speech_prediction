@@ -104,7 +104,7 @@ class SpeechPredictionController(BaseController):
     def __init__(self,
                  path,
                  participant='test',
-                 trial=0,
+                 trial=1,
                  model=None,
                  speech_eps=0.15,
                  context_eps=0.15,
@@ -123,15 +123,20 @@ class SpeechPredictionController(BaseController):
         # Initializing storage space
         participant_path = os.path.join(path, participant)
         _check_path(participant_path, fail_on_exist=False)
-        self.trial = trial
-        self.path = os.path.join(participant_path, str(trial))
+
+        if trial == -1:
+            self.trial = len(os.listdir(participant_path)) + 1
+            rospy.loginfo(
+                "Loading most recent model from: {}".format(participant_path))
+
+        self.path = os.path.join(participant_path, str(self.trial))
         _check_path(self.path)
         rospy.loginfo("Training model...")
         if model is None:
-            if trial == 1:
+            if self.trial == 1:
                 self._train_model(speech_eps, context_eps, fit_type)
             elif fit_type == 'incremental':
-                model = os.path.join(participant_path, str(trial - 1),
+                model = os.path.join(participant_path, str(self.trial - 1),
                                      "model_final")
                 self._load_model(model, speech_eps, context_eps)
             elif fit_type == "offline":
