@@ -3,23 +3,9 @@ from unittest import TestCase
 
 from sklearn.linear_model import SGDClassifier
 
-from hrc_speech_prediction import context_model
-from hrc_speech_prediction.data import (ALL_ACTIONS, TRAIN_PARTICIPANTS,
-                                        TrainData)
-from hrc_speech_prediction.defaults import MODEL_PATH
+from hrc_speech_prediction.data import (ALL_ACTIONS, TrainData)
 from hrc_speech_prediction.features import get_bow_features
-from hrc_speech_prediction.models import CombinedModel
-from hrc_speech_prediction.speech_model import SpeechModel
-
-
-class TestContextTreeModel(TestCase):
-    def setUp(self):
-        self.model = context_model.ContextTreeModel(ALL_ACTIONS)
-
-        self.model.fit([[], [], ["a"], ["z", "b", "c"]], ["a", "a", "b", "d"])
-
-    def test_n_children(self):
-        self.assertEqual(self.model.root.n_children, 2)
+from hrc_speech_prediction.models import CombinedModel, JointModel
 
 
 class TestCombinedModel(TestCase):
@@ -41,7 +27,7 @@ class TestCombinedModel(TestCase):
             self.data, tfidf=TFIDF, n_grams=N_GRAMS, max_features=None)
         self.X_speech = self.X_speech[flat_train_ids, :]
 
-        model_gen = SpeechModel.model_generator(
+        model_gen = JointModel.model_generator(
             SGDClassifier,
             loss='log',
             average=True,

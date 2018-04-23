@@ -1,4 +1,4 @@
-# HRC Action Prediction from Speech
+# Action Prediction from Speech [![Build Status](https://travis-ci.org/ScazLab/hrc_speech_prediction.svg?branch=master)](https://travis-ci.org/ScazLab/hrc_speech_prediction) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/28d154d7ad7045aaa5a21eb9e6515f2c)](https://www.codacy.com/app/Baxter-collaboration/hrc_speech_prediction?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=ScazLab/hrc_speech_prediction&amp;utm_campaign=Badge_Grade)
 
 ## Repository organization
 

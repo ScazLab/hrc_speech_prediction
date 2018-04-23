@@ -55,6 +55,11 @@ class Node(object):
         self._count += 1.0
         return self
 
+    def __eq__(self, other):
+        return (isinstance(other, Node)
+                and self._children == other._children
+                and self._count == other._count)
+
     def get_or_add_node(self, cntxt):
         if not cntxt:
             return self
