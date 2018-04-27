@@ -7,7 +7,4 @@
     <!-- <remap from="/speech_to_text/text" to="/svox_tts/speech_output"/> -->
     <include file="$(find ros_speech2text)/launch/ros_speech2text.launch" />
 
-    <!-- Display listening on screen -->
-    <node pkg="ros_speech2text" type="listening_to_display.py" name="listening_to_display"  output="screen"/>
-
 </launch>
