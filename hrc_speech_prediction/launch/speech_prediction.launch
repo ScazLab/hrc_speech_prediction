@@ -51,7 +51,7 @@
     <arg name="internal_recovery" default="true"/>
     <param name="action_provider/internal_recovery" value="$(arg internal_recovery)"/>
     <!-- print level (shared throughout the control code) -->
-    <arg name="print_level" default="4"/>
+    <arg name="print_level" default="2"/>
     <param name="print_level" value="$(arg print_level)" />
 
     <node pkg="human_robot_collaboration" type="sp_pred_action_provider" name="sp_pred_action_provider" output="screen">

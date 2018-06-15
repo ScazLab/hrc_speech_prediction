@@ -57,15 +57,15 @@ var lineFunction = d3.svg.line()
     .interpolate("linear");
 
 // Visualizes aruco data from left arm
-leftAruco.subscribe(function(msg){
-
+leftAruco.subscribe(function(msg)
+{
     var left_markers = msg.markers;
     arucoCallback(left_markers,left_svg);
 });
 
 
-rightAruco.subscribe(function(msg){
-
+rightAruco.subscribe(function(msg)
+{
     var  right_markers = msg.markers;
     arucoCallback(right_markers,right_svg);
 });
@@ -83,8 +83,8 @@ speech2Text.subscribe(function(msg){
     speech2TextCallback(msg);
 });
 
-function armInfoCallback(msg,arm){
-
+function armInfoCallback(msg,arm)
+{
     console.log("Receiving arm info!: " + msg.state);
     var s = d3.select("#" + arm + "_baxter_state");
     var a = d3.select("#" + arm + "_baxter_action");
@@ -100,8 +100,8 @@ function armInfoCallback(msg,arm){
         .text("OBJECT: " + msg.object);
 }
 
-function speech2TextCallback(msg){
-
+function speech2TextCallback(msg)
+{
     var s = d3.select("#speech2TextStatus");
     var t = d3.select("#speech2TextTranscription");
 
@@ -122,12 +122,12 @@ function speech2TextCallback(msg){
     } else {
         t.classed("alert-info", false)
          .classed("alert-danger", true)
-            .text("Unkown event: " + msg.event);
+            .text("Unknown event: " + msg.event);
     }
 }
 
-function arucoCallback(markers,s){
-
+function arucoCallback(markers,s)
+{
     s.selectAll("*").remove();
 
     var right_objs = s.selectAll("g")
