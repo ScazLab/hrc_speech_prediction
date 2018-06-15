@@ -30,12 +30,12 @@ parser.add_argument(
 parser.add_argument(
     '-p', '--participant', help='id of participant', default='test')
 parser.add_argument(
-    '-t', '--trial', type=int, help='id of the trial', default='test')
+    '-t', '--trial', type=int, help='id of the trial', default=-1)
 
 parser.add_argument(
     '-d',
     '--debug',
-    help='displays plots for each predicition',
+    help='displays plots for each prediction',
     dest='debug',
     action='store_true')
 
@@ -104,7 +104,7 @@ class SpeechPredictionController(BaseController):
     def __init__(self,
                  path,
                  participant='test',
-                 trial=1,
+                 trial=-1,
                  model=None,
                  speech_eps=0.15,
                  context_eps=0.15,
@@ -191,6 +191,11 @@ class SpeechPredictionController(BaseController):
             else:
                 # exclude from prediction wrong actions and
                 # actions previously taken
+                if self._baxter_finished(utter):
+                    rospy.loginfo('We have finished.')
+                    self._stop()
+                    break
+
                 exclude = self.wrong_actions + self.action_history
                 action, _ = self.model.predict(
                     self.action_history,
@@ -316,6 +321,16 @@ class SpeechPredictionController(BaseController):
         if utter:
             return re.search(
                 r"^(\w+\b\s){0,2}(baxter|boxer|braxter|back store| back sir|baxar|dexter|pastor|faster)",
+                utter.lower())
+        else:
+            return False  # than utter is probably None
+
+    @staticmethod
+    def _baxter_finished(utter):
+        "Checks we have finished"
+        if utter:
+            return re.search(
+                r"^(\w+\b\s){0,2}(we have finished|done|we are done|finished|we're finished|we're done|terminate)",
                 utter.lower())
         else:
             return False  # than utter is probably None

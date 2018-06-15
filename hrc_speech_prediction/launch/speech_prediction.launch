@@ -65,7 +65,6 @@
     <!-- Speech to Text -->
     <arg name="audio_path" default="/home/$(env USER)/Desktop/speech_prediction_bags/ExperimentAudio/"/>
     <param name="/ros_speech2text/speech_history" value="$(arg audio_path)"/>
-    <param name="/ros_speech2text/n_silent_chunks" value="15"/>
     <param name="/ros_speech2text/cleanup" value="false"/>
 
     <include file="$(find ros_speech2text)/launch/ros_speech2text.launch" />
