@@ -77,7 +77,7 @@ before_install:
   - wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
   - sudo apt-get update -qq
   - sudo apt-get install dpkg
-  - sudo apt-get upgrade
+  - sudo apt-get upgrade -y --allow-unauthenticated
   - sudo apt-get install -y python-{numpy,catkin-tools,rosdep,wstool,tk} ros-$ROS_DISTRO-catkin libnlopt-dev
   - sudo pip install scipy matplotlib sklearn
   - mkdir -p ~/.config/matplotlib
