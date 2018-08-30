@@ -1,10 +1,18 @@
 # coding: utf8
 
+import re 
 from textwrap import wrap
 
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.signal import savgol_filter
+
+#TODO Move this stuff into a launch file
+RED = '#d9262c'
+BLUE = '#308bc9'
+GREEN = '#089164'
+
+COLORS = [RED, BLUE, GREEN]
 
 
 def simplify_plot(ax):
@@ -35,7 +43,7 @@ def plot_predict_proba(probas,
                        model_names=None,
                        truth=None,
                        ax=None,
-                       colors=None,
+                       colors=COLORS,
                        color_map=None):
     """Plot predicted probabilities for one or more models.
 
@@ -47,6 +55,8 @@ def plot_predict_proba(probas,
     :param truth: string
         ground truth label
     """
+    
+    classes = [re.sub(r'\_','\\_', c) for c in classes]
     if ax is None:
         ax = plt.gca()
     if probas.shape < 2:
@@ -58,7 +68,8 @@ def plot_predict_proba(probas,
     xs = np.arange(probas.shape[1])
     for i in range(n_models):
         rects = ax.bar(
-            xs + i * shift, probas[i, :], width=shift, color=colors[i]).patches
+            xs + i * shift, probas[i, :], width=shift,
+            color=colors[i], edgecolor="none").patches
         # Draw * above highest prediction
         best = rects[np.argmax(probas[i, :])]
         ax.text(
@@ -66,18 +77,17 @@ def plot_predict_proba(probas,
             best.get_height() * 1.01,
             '*',
             ha='center',
-            va='bottom',
-            fontsize="12")
+            va='bottom')
     ax.set_xticks(.8 + xs)
     ticks = ax.set_xticklabels(classes, rotation=70, ha='right')
     if truth is not None:
         ticks[classes.index(truth)].set_weight('black')
 
     ax.set_xlim(0, len(classes))
-    ax.set_title("\n".join(wrap(u'“' + utterance + u'”', 70)), fontsize="11")
+    ax.set_title("\n".join(wrap(u'“' + utterance + u'”', 70)), fontsize=17)
     simplify_plot(ax)
 
-    plt.xlabel("Actions")
+    #plt.xlabel("Actions")
     plt.ylabel("Probability")
     if model_names is not None:
-        ax.legend(model_names)
+        ax.legend(model_names, frameon=False)

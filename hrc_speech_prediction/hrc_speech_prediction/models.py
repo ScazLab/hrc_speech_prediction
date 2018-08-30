@@ -233,7 +233,7 @@ class CombinedModel(object):
 
         if plot and model == "both":
             all_probs = np.vstack((speech_probs, context_probs, probs))
-            names = ["Speech", "Context", "Combined"]
+            names = ["Speech", "Context", "Speech \& Context"]
             plots.plot_predict_proba(
                 all_probs, self.actions, utter, model_names=names, ax=ax)
         if return_probs and model == "both":

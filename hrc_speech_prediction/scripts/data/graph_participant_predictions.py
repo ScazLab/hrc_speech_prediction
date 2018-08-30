@@ -1,6 +1,7 @@
 import argparse
 import os
 
+import matplotlib
 import matplotlib.pyplot as plt
 from sklearn.externals import joblib
 from sklearn.linear_model import SGDClassifier
@@ -38,11 +39,12 @@ SPEECH_MODEL_PARAMETERS = {
 PLOT_PARAMS = {
     'font.family': 'serif',
     'font.size': 10.0,
-    'font.serif': 'Computer Modern Roman',
+    'font.serif': 'Times Roman',
     'text.usetex': 'True',
     'text.latex.unicode': 'True',
     'axes.titlesize': 'large',
     'axes.labelsize': 'large',
+    'axes.linewidth': 2,
     'legend.fontsize': 'medium',
     'xtick.labelsize': 'small',
     'ytick.labelsize': 'small',
@@ -52,6 +54,9 @@ PLOT_PARAMS = {
 }
 
 
+for k,v in PLOT_PARAMS.iteritems():
+    matplotlib.rcParams[k] = v
+
 def plot_trial(trial, bag):
     if trial == 1:
         model_type = "model_initial"
@@ -60,6 +65,8 @@ def plot_trial(trial, bag):
 
     model_path = os.path.join(args.model_path, args.participant, str(trial),
                               model_type)
+    if not os.path.isfile(model_path):
+        model_path = os.path.join(args.model_path, "NEMS/1", model_type)
     fig_path = os.path.join(
         os.path.dirname(__file__), "figs", args.participant, str(trial))
 

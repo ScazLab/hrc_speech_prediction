@@ -1,7 +1,10 @@
 import argparse
 import os
 
+import matplotlib
+import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
+
 import numpy as np
 from scipy import stats
 from sklearn.linear_model import SGDClassifier
@@ -17,7 +20,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument(
     '--bag_path',
     help='path to the experiment files',
-    default="/home/scazlab/Desktop/speech_prediction_bags/Experiment2Data/")
+    default="/home/scazlab/Desktop/trash_dump_stuffthatwasonthedesktop/speech_prediction_bags/Experiment2Data")
 parser.add_argument(
     '--model_path', help='path to model files', default=MODEL_PATH)
 
@@ -57,11 +60,12 @@ SPEECH_MODEL_PARAMETERS = {
 PLOT_PARAMS = {
     'font.family': 'serif',
     'font.size': 10.0,
-    'font.serif': 'Computer Modern Roman',
+    'font.serif': 'Times Roman',
     'text.usetex': 'True',
     'text.latex.unicode': 'True',
     'axes.titlesize': 'large',
     'axes.labelsize': 'large',
+    'axes.linewidth': 2,
     'legend.fontsize': 'medium',
     'xtick.labelsize': 'small',
     'ytick.labelsize': 'small',
@@ -69,6 +73,9 @@ PLOT_PARAMS = {
     'savefig.bbox': 'tight',
     'figure.figsize': (7.5, 4),
 }
+
+for k,v in PLOT_PARAMS.iteritems():
+    matplotlib.rcParams[k] = v
 
 SAVE_PATH = os.path.join(os.path.dirname(__file__), "figs/results/")
 
@@ -160,23 +167,32 @@ class AnalyzeData(object):
         plt.figure()
         self._simplify_plot(plt.gca())
 
-        plt.xlabel(r"Trials", fontweight='bold')
-        plt.ylabel(r"Errors", fontweight='bold')
+        plt.xlabel(r"Trials")#, fontweight='bold')
+        plt.ylabel(r"Errors")#, fontweight='bold')
+    
+        double_colors = [j for i in COLORS for j in (i,i,)]
 
         bplot = plt.boxplot([t1, t2, t3], patch_artist=True)
-
+        
         for patch, color in zip(bplot['boxes'], COLORS):
             patch.set_facecolor(color)
-
+            plt.setp(patch, color=color)
+        
         plt.setp(bplot['medians'], color="red", linewidth=3.5)
-        plt.setp(bplot['whiskers'], color="black")
+
+        #for patch, color in zip(bplot['whiskers'], COLORS):
+        #    plt.setp(patch, color=color)
+        
+        for element in ['whiskers', 'caps']:
+            for patch, color in zip(bplot[element], double_colors):
+                plt.setp(patch, linewidth=2.5, color=color, linestyle='-')
 
         plt.ylim(0, 10)
         plt.grid()
         plt.tight_layout()
 
         plt.savefig(os.path.join(SAVE_PATH, "errors_per_trial.pdf"))
-        plt.show()
+        #plt.show()
 
     def plot_errs_across_instructions(self):
         counts_by_instr = self._count_errors_by_instruction()
@@ -185,16 +201,19 @@ class AnalyzeData(object):
         # plt.rc('text', usetex=True)
         # plt.rc('font', family='serif')
 
-        plt.xlabel(r'Instruction steps', fontsize=20, fontweight='bold')
-        plt.ylabel(r'Mean errors', fontsize=20, fontweight='bold')
+        plt.xlabel(r'Instruction steps')#, fontsize=20, fontweight='bold')
+        plt.ylabel(r'Mean errors')#, fontsize=20, fontweight='bold')
 
         plt.xlim(.6, 21.3)
         # plt.ylim(-.8, 2)
 
         x = np.arange(1, 22, 1.05)
         self._simplify_plot(plt.gca())
+        
+        plt.axvline(x=14, linestyle="--", linewidth=2, color='gray', label=None)
+        handles = []
 
-        for i, c in zip([1, 2, 3], COLORS):
+        for i, c, t in zip([1, 2, 3], COLORS, TRIAL_NAMES):
             m = np.mean(counts_by_instr[i], axis=1)
             err = np.std(counts_by_instr[i], axis=1)
             err = np.vstack((np.array(
@@ -205,27 +224,32 @@ class AnalyzeData(object):
                 m,
                 yerr=err,
                 fmt='--o',
-                label="Trial {}".format(i),
+                label=t,
                 ls='solid',
-                lw=3,
+                lw=5,
                 color=c,
-                elinewidth=1,
-                capthick=1)
+                elinewidth=2,
+                markersize=10,
+                mec=c, # circle border color.
+                capthick=2)
+
+            handles.append(mpatches.Patch(color=c, label=t))
 
         plt.grid()
-        plt.legend(TRIAL_NAMES, loc=2)
+        leg = plt.legend(handles, TRIAL_NAMES, loc=2, frameon=False)
+        leg.set_facecolor('white')
 
         plt.tight_layout()
         plt.savefig(
             os.path.join(SAVE_PATH, "errors_per_instruction_one_plot.pdf"))
-        plt.show()
+        #plt.show()
 
     def plot_boxes_across_instructions(self):
 
         counts_by_instr = self._count_errors_by_instruction()
         fig, axarr = plt.subplots(3, sharex=True, sharey=True)
 
-        plt.suptitle("Errors per instruction", fontsize=20)
+        plt.suptitle("Errors per instruction")
 
         for i in range(3):
             axarr[i].boxplot(np.transpose(counts_by_instr[i + 1]))
@@ -233,7 +257,7 @@ class AnalyzeData(object):
 
         plt.savefig(
             os.path.join(SAVE_PATH, "boxes_per_instruction_one_plot.pdf"))
-        plt.show()
+        #plt.show()
 
     def _get_model(self, participant, trial):
         if trial == 0:
@@ -315,9 +339,9 @@ class AnalyzeData(object):
 
 args = parser.parse_args()
 
-with plt.rc_context(rc=PLOT_PARAMS):
-    a = AnalyzeData(EXCLUDE)
-    # a.plot_errs_across_instructions()
-    print(len(a._filter_bags(filter_by="participant").keys()))
-    # a.plot_across_trials()
-    a.print_model_performances()
+#with plt.rc_context(rc=PLOT_PARAMS):
+a = AnalyzeData(EXCLUDE)
+a.plot_errs_across_instructions()
+#print(len(a._filter_bags(filter_by="participant").keys()))
+a.plot_across_trials()
+#a.print_model_performances()
